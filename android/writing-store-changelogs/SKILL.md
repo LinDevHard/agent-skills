@@ -1,11 +1,11 @@
 ---
 name: writing-store-changelogs
-description: Writes the app-store release notes ("What's new") for one Android version as a changelog file named after its versionCode in every locale of a fastlane-style metadata tree (fastlane/metadata/android), matching the style of earlier entries and the limits of Google Play, F-Droid and RuStore. Use when preparing an Android release and the user asks for release notes, what's new, a store changelog, or "что нового" for the stores. Not for CHANGELOG.md, GitHub release notes, or store descriptions.
+description: Writes the app-store release notes ("What's new") for one Android version as a changelog file named after its versionCode in every locale of a fastlane-style metadata tree (fastlane/metadata/android), matching the style of earlier entries and the limits and content rules of Google Play, F-Droid, RuStore and Huawei AppGallery. Use when preparing an Android release and the user asks for release notes, what's new, a store changelog, or "что нового" for the stores. Not for CHANGELOG.md, GitHub release notes, or store descriptions.
 ---
 
 # Writing store changelogs
 
-Writes `<locale>/changelogs/<versionCode>.txt` for one version, in every locale the project already has. Google Play, F-Droid and RuStore all read these files, so one set of texts serves every store.
+Writes `<locale>/changelogs/<versionCode>.txt` for one version, in every locale the project already has. Google Play tools, F-Droid and RuStore tools all read these files, and the same text can be pasted into AppGallery, so one set of texts serves every store.
 
 Out of scope: changing `versionCode`, editing `CHANGELOG.md` or GitHub releases, editing titles or descriptions, publishing, committing.
 
@@ -49,6 +49,15 @@ Read the 2-3 most recent changelogs of each locale and its `short_description.tx
 
 Write `en-US` first if the project has it, otherwise the locale with the most history. Write each other locale from the same facts in that locale's own earlier style: not a word-for-word translation. A locale with no earlier entries follows the primary locale's style; mention that in the summary.
 
+Store moderation has a few content rules. They hold in every store, so follow them even for a store the user did not name:
+
+- **Concrete, user-visible changes.** "Fixed a crash on Android 12 at startup", not "bug fixes and stability improvements" in every release. RuStore asks for this explicitly.
+- **No issue numbers or tracker keys** (`#123`, `APP-45`). Commit messages are full of them; strip them. RuStore moderation rejects internal codes.
+- **No promotion or calls to action**: no sales, "rate us", "update now". Google Play forbids using release notes for promotion or to solicit user actions.
+- **No links**, except one to a detailed changelog if the user wants it. RuStore rejects links unrelated to the update.
+- **Plain text only**: no HTML or Markdown. Stores show the text as is.
+- **Only this release.** No notes for moderators, no text carried over from an earlier version.
+
 When a draft is too long, drop the least important points; never cut a sentence in the middle.
 
 ## 6. Check
@@ -56,10 +65,12 @@ When a draft is too long, drop the least important points; never cut a sentence 
 Write the drafts to their final paths, then run:
 
 ```bash
-python3 <skill-dir>/scripts/check_changelogs.py <tree> <versionCode> [--stores play,fdroid,rustore]
+python3 <skill-dir>/scripts/check_changelogs.py <tree> <versionCode> [--stores play,fdroid,rustore,appgallery]
 ```
 
-`<skill-dir>` is this skill's directory. Pass `--stores` only when the user named the stores; by default every known store is checked, which means the strictest limit (500 characters). The script counts characters, not bytes, so Cyrillic is measured correctly. Fix every `FAIL` and run it again until it exits with 0.
+`<skill-dir>` is this skill's directory. Pass `--stores` only when the user named the stores; by default every known store is checked, which means the strictest limit (500 characters per language). The script counts characters, not bytes, so Cyrillic is measured correctly, and it flags HTML, issue numbers and links.
+
+Fix every `FAIL` and run it again until it exits with 0. For each `warn` line, fix it or tell the user why it stays (for example, a tracker-like word that is really a product name).
 
 If `python3` is missing, count lengths with a tool that counts characters (not `wc -m` in the C locale, which counts bytes) and say the script did not run.
 
