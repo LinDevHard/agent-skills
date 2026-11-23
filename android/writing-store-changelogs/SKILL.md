@@ -34,16 +34,23 @@ If `changelogs/<versionCode>.txt` already exists in any locale, the version was 
 
 ```bash
 git describe --tags --abbrev=0          # last release tag
-git log --no-merges --format='%s%n%b' <tag>..HEAD
+git describe --tags --abbrev=0 HEAD^    # previous tag, when HEAD itself is tagged
 ```
 
-If HEAD itself is the tag, use the range from the previous tag. If there are no tags, ask which commit to start from.
+If there are no tags, ask which commit to start from.
 
-Keep only what a user of the app would notice: features, visible fixes, behaviour changes. Drop refactoring, CI, dependency bumps and tests unless the user asks for them. Add anything the user mentions that is not in git. If nothing user-facing is left, say so and offer a short neutral line ("Stability improvements"), instead of inventing features.
+Keep only what a user of the app would notice: features, visible fixes, behaviour changes. Drop refactoring, CI, dependency bumps and tests unless the user asks for them. Add anything the user mentions that is not in git.
+
+Read the range in two passes, so a large one (hundreds of commits) stays cheap:
+
+1. Subjects only, one line per commit: `git log --no-merges --format='%h %s' <tag>..HEAD`. Pick the candidates by reading the subjects yourself; do not filter them with keyword greps, which drop real fixes such as "Update grid spacing to fix #732".
+2. Full message only for the candidates: `git show --no-patch <hash>`.
+
+Before naming a feature, make sure it ships in this release: it is wired into the app (navigation, the production build, not a debug or demo flavor), not only added as code. If nothing user-facing is left, say so and offer a short neutral line ("Stability improvements"), instead of inventing features.
 
 ## 4. Read the style
 
-Read the 2-3 most recent changelogs of each locale and its `short_description.txt`. Note length, tone, sentence or bullet form, verb form ("Added ...", "Добавлены ..."), and how features are named. The new entry should read as if the same person wrote it.
+Read the 2-3 most recent changelogs of each locale and its `short_description.txt` (skip it if it does not exist). Note length, tone, sentence or bullet form, verb form ("Added ...", "Добавлены ..."), and how features are named. The new entry should read as if the same person wrote it.
 
 ## 5. Write the drafts
 
