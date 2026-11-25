@@ -68,3 +68,63 @@ def test_feature_graphic_has_no_device(project):
     c = _canvas(project(), "feature-graphic", (1024, 500))
     assert (c.width, c.height, c.frames) == (1024, 500, 1)
     assert "data-shot=" not in c.html
+
+
+def test_style_auto_decor_crosses_every_border(project):
+    def mutate(d):
+        d["style"]["name"] = "sketch"
+
+    c = _canvas(project(mutate))
+    lefts = [float(v) for v in re.findall(r'class="decor[^"]*" style="left:([\d.]+)px', c.html)]
+    widths = [float(v) for v in re.findall(r'class="decor[^"]*" style="[^"]*?width:([\d.]+)px', c.html)]
+    for border in range(1080, c.width, 1080):
+        if border == 1080:
+            continue  # inside the 2-wide cover, not a frame border
+        assert any(left < border < left + w for left, w in zip(lefts, widths)), border
+
+
+def test_explicit_decor_replaces_auto_decor(project):
+    def mutate(d):
+        d["style"]["name"] = "sketch"
+        d["decor"] = [{"kind": "arrow", "x": 0.5, "y": 0.5}]
+
+    c = _canvas(project(mutate))
+    assert c.html.count('class="decor ') == 1
+
+
+def test_decor_masks_are_inline(project):
+    # Chrome refuses mask-image from file:// URLs (CORS), so masks must be data URIs.
+    def mutate(d):
+        d["style"]["name"] = "sketch"
+
+    c = _canvas(project(mutate))
+    styles = re.findall(r'class="decor [^"]*" style="([^"]*)"', c.html)
+    assert styles and all("mask-image:url('data:image/svg+xml" in st for st in styles)
+
+
+def test_two_wide_cover_auto_layout_crosses_border(project):
+    def mutate(d):
+        for shot in d["frames"][0]["shots"]:
+            shot.pop("offset", None)
+
+    c = _canvas(project(mutate))
+    spans = [(_left_px(c.html, f'data-shot="0.{j}"'), _width_px(c.html, f'data-shot="0.{j}"')) for j in (0, 1)]
+    assert any(left < 1080 < left + w for left, w in spans)
+    assert all(w >= 0.6 * 1080 for _, w in spans)
+
+
+def test_style_rotates_feature_phones(project):
+    def mutate(d):
+        d["style"]["name"] = "sketch"
+
+    c = _canvas(project(mutate))
+    angles = re.findall(r'data-shot="[1-4]\.0"[^>]*rotate\((-?[\d.]+)deg\)', c.html)
+    assert len(angles) == 4 and any(float(a) != 0 for a in angles)
+
+
+def test_poster_accent_is_the_brightest_brand_colour(project):
+    def mutate(d):
+        d["style"]["name"] = "poster"
+
+    c = _canvas(project(mutate))
+    assert "--accent:#FFC15E" in c.html and "--accent:#2A1BD6" not in c.html

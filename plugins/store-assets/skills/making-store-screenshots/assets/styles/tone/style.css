@@ -1,0 +1,7 @@
+/* tone (after Themify): each frame tinted from its own shot, a high-contrast serif caption,
+   large phones that run off the bottom edge. */
+#canvas { --decor: rgba(255,255,255,.35); }
+.caption { --text: #1d1a22; }
+.caption h1 { font-weight: 400; line-height: 1.04; letter-spacing: -0.01em; }
+.caption .subtitle { font-size: 0.36em; opacity: .7; }
+.device-phone { --device: #26232b; }

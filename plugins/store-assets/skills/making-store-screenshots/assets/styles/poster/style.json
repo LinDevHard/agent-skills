@@ -1,0 +1,21 @@
+{
+  "fonts": {
+    "title": "unbounded_var.ttf",
+    "body": "inter_var.ttf"
+  },
+  "caption": {
+    "size": 0.072
+  },
+  "background": {
+    "mode": "cover-gradient",
+    "base": "#0d0d11",
+    "colors": []
+  },
+  "device": {
+    "kind": "phone",
+    "bleed": 0.1
+  },
+  "frameColors": "fixed",
+  "decor": [],
+  "accent": "brightest"
+}

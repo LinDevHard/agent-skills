@@ -6,6 +6,7 @@ decor) continues on the next frame when the store shows the frames in a row.
 
 from __future__ import annotations
 
+import base64
 import html
 import json
 from dataclasses import dataclass
@@ -14,7 +15,7 @@ from pathlib import Path
 from PIL import Image
 
 import palette
-from series import Frame, Series, ShotRef
+from series import Decor, Frame, Series, ShotRef
 from targets import TARGETS
 
 # Layout of a portrait frame, as fractions of frame height or width.
@@ -26,6 +27,12 @@ AUTO_LAYOUT = {
     1: [(0.5, 0.0, DEVICE_WIDTH)],
     2: [(0.33, 0.0, 0.52), (0.67, 0.07, 0.52)],
     3: [(0.22, 0.06, 0.38), (0.5, 0.0, 0.38), (0.78, 0.06, 0.38)],
+}
+# A 2-wide cover: two large devices that overlap the border between its two slots (Themify's cover).
+COVER2_LAYOUT = {
+    1: [(1.0, 0.0, 0.8)],
+    2: [(0.78, 0.0, 0.68), (1.38, 0.07, 0.68)],
+    3: [(0.45, 0.06, 0.56), (1.0, 0.0, 0.62), (1.55, 0.06, 0.56)],
 }
 BEZEL = {"phone": 0.035, "tablet": 0.028, "none": 0.0}  # Bezel thickness as a share of device width.
 
@@ -91,13 +98,15 @@ def _frame_background(style: dict, s: Series, frame: Frame, index: int, base_dir
 
 def _accent(style: dict, s: Series, index: int) -> str:
     brand = s.app.brand or style.get("background", {}).get("colors") or ["#2a1bd6"]
+    if style.get("accent") == "brightest":  # Dark styles need the accent that reads on black.
+        return max(brand, key=palette.luminance)
     if style.get("frameColors") == "cycle-brand":
         return brand[index % len(brand)]
     return brand[0]
 
 
 def _shot_html(shot: ShotRef, key: str, frame_left: float, fw: int, fh: int, auto, style: dict,
-               base_dir: Path, platform: str) -> str:
+               base_dir: Path, platform: str, index: int = 0) -> str:
     rel = shot.path_for(platform)
     src = base_dir / rel
     with Image.open(src) as img:
@@ -119,7 +128,11 @@ def _shot_html(shot: ShotRef, key: str, frame_left: float, fw: int, fh: int, aut
     dev_h = screen_h + 2 * bezel
     left = frame_left + x_frames * fw - dev_w / 2
     top = (SHOTS_TOP + y_extra) * fh
-    transform = f"rotate({shot.rotate}deg)"
+    rotate = shot.rotate
+    turns = style.get("device", {}).get("rotate") or []
+    if not rotate and turns:  # The style's own turn, alternating per frame, unless the shot sets one.
+        rotate = turns[index % len(turns)]
+    transform = f"rotate({rotate}deg)"
     if shot.tilt:
         transform = f"perspective({dev_w * 3:.0f}px) rotateY({-shot.tilt}deg) rotateX({shot.tilt / 3:.1f}deg) " + transform
     return (
@@ -130,6 +143,23 @@ def _shot_html(shot: ShotRef, key: str, frame_left: float, fw: int, fh: int, aut
         f'<div class="screen" style="width:{screen_w:.1f}px; height:{screen_h:.1f}px">'
         f'<img src="{_url(src)}" style="width:{screen_w:.1f}px; margin-top:{-crop_top * k:.1f}px"></div></div>'
     )
+
+
+AUTO_DECOR_WIDTH = 0.24  # Share of frame width: big enough to read as a doodle, small enough to sit in the gap.
+AUTO_DECOR_Y = (0.2, 0.7)  # Alternate between the caption gap and the lower half, so borders don't line up.
+
+
+def _auto_decor(s: Series, style: dict) -> list[Decor]:
+    """One doodle across every frame border, so the series reads as one strip (sketch style)."""
+    kinds = style.get("decor") or []
+    if not kinds:
+        return []
+    out, border = [], 0
+    for i, frame in enumerate(s.frames[:-1]):
+        border += frame.span
+        out.append(Decor(kind=kinds[i % len(kinds)], x=border - AUTO_DECOR_WIDTH / 2,
+                         y=AUTO_DECOR_Y[i % 2], w=AUTO_DECOR_WIDTH, rotate=(-12, 9, -4)[i % 3]))
+    return out
 
 
 def _fonts_css(style: dict, skill_dir: Path) -> str:
@@ -190,22 +220,23 @@ def build_canvas(s: Series, target: str, size: tuple[int, int], locale: str, ski
             f"<h1>{_caption_html(caption)}</h1>{sub_html}</div>"
         )
         usable = [sh for sh in frame.shots if sh.path_for(platform)]
-        layout = AUTO_LAYOUT.get(len(usable), AUTO_LAYOUT[3])
+        table = COVER2_LAYOUT if frame.span == 2 else AUTO_LAYOUT
+        layout = table.get(len(usable), table[3])
         for j, shot in enumerate(usable):
             auto = layout[min(j, len(layout) - 1)]
-            if frame.span == 2:
-                auto = (auto[0] * 2, auto[1], auto[2])
-            shots.append(_shot_html(shot, f"{i}.{j}", x, fw, fh, auto, style, base_dir, platform))
+            shots.append(_shot_html(shot, f"{i}.{j}", x, fw, fh, auto, style, base_dir, platform, i))
         x += width
 
     decor = []
-    for d in s.decor:
+    for d in s.decor or _auto_decor(s, style):
         path = skill_dir / "assets/decor" / f"{d.kind}.svg"
+        # Inline the SVG: Chrome refuses mask-image from file:// URLs.
+        mask = "'data:image/svg+xml;base64," + base64.b64encode(path.read_bytes()).decode() + "'"
         color = d.color or "var(--decor, #1b1b1f)"
         decor.append(
             f'<div class="decor decor-{_esc(d.kind)}" style="left:{d.x * fw:.0f}px; top:{d.y * fh:.0f}px; '
             f'width:{d.w * fw:.0f}px; height:{d.w * fw:.0f}px; transform:rotate({d.rotate}deg); '
-            f'background:{color}; -webkit-mask-image:url({_url(path)}); mask-image:url({_url(path)})"></div>'
+            f'background:{color}; -webkit-mask-image:url({mask}); mask-image:url({mask})"></div>'
         )
 
     total = int(x)

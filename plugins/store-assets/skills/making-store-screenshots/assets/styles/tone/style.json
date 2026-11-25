@@ -1,0 +1,21 @@
+{
+  "fonts": {
+    "title": "prata_regular.ttf",
+    "body": "inter_var.ttf"
+  },
+  "caption": {
+    "size": 0.092
+  },
+  "background": {
+    "mode": "shot-tone",
+    "colors": []
+  },
+  "device": {
+    "kind": "phone",
+    "bleed": 0.12
+  },
+  "frameColors": "per-shot",
+  "decor": [
+    "blob"
+  ]
+}

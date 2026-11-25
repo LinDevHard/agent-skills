@@ -1,0 +1,7 @@
+/* poster (after Ladder): near-black frames, heavy uppercase caption, brand accent on the cover. */
+.caption { --text: #f6f6f8; text-align: left; }
+.caption h1 { font-weight: 800; text-transform: uppercase; line-height: 1.02; letter-spacing: -0.01em; }
+.caption .last { color: var(--accent); }
+.caption .subtitle { font-size: 0.34em; opacity: .7; text-transform: none; }
+.device-phone { --device: #2a2a30; box-shadow: 0 0 0 2px rgba(255,255,255,.08), 0 3vw 6vw rgba(0,0,0,.6); }
+.fg-name { --text: #f6f6f8; }

@@ -1,0 +1,27 @@
+{
+  "app": {"name": "Pixstage", "brand": ["#2A1BD6", "#FF6CC9", "#FFC15E"], "icon": "pixstage-android/icon.png"},
+  "style": {"name": "sketch", "overrides": {}},
+  "targets": ["android-phone", "feature-graphic"],
+  "locales": ["en-US", "ru-RU"],
+  "frames": [
+    {
+      "role": "cover", "span": 2,
+      "caption": {"en-US": "Make your screenshots shine", "ru-RU": "Красивые скриншоты за минуту"},
+      "subtitle": {"en-US": "Store-ready images in a minute", "ru-RU": "Готовые картинки для стора и соцсетей"},
+      "shots": [
+        {"path": "pixstage-android/01.png", "platform": "android", "rotate": -5},
+        {"path": "pixstage-android/02.png", "platform": "android", "rotate": 5}
+      ]
+    },
+    {"caption": {"en-US": "Gradients, mesh and colour", "ru-RU": "Градиенты и цвета"},
+     "shots": [{"path": "pixstage-android/03.png", "platform": "android"}]},
+    {"caption": {"en-US": "Frames and soft shadows", "ru-RU": "Рамки и мягкие тени"},
+     "shots": [{"path": "pixstage-android/04.png", "platform": "android"}]},
+    {"caption": {"en-US": "Turn and tilt in 3D", "ru-RU": "Поворот и 3D-наклон"},
+     "shots": [{"path": "pixstage-android/05.png", "platform": "android", "tilt": 10}]},
+    {"caption": {"en-US": "Captions in your font", "ru-RU": "Подписи вашим шрифтом"},
+     "shots": [{"path": "pixstage-android/06.png", "platform": "android"}]}
+  ],
+  "decor": [],
+  "output": {"workdir": "store/screenshots", "project_root": "."}
+}

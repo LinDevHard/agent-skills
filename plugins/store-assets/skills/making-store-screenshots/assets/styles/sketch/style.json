@@ -1,0 +1,30 @@
+{
+  "fonts": {
+    "title": "caveat_var.ttf",
+    "body": "inter_var.ttf"
+  },
+  "caption": {
+    "size": 0.105
+  },
+  "background": {
+    "mode": "solid",
+    "colors": [
+      "#fbfaf7"
+    ]
+  },
+  "device": {
+    "kind": "phone",
+    "bleed": 0.08,
+    "rotate": [
+      -3,
+      3
+    ]
+  },
+  "frameColors": "cycle-brand",
+  "decor": [
+    "swirl",
+    "arrow",
+    "sparkle",
+    "loop-line"
+  ]
+}
