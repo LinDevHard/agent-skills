@@ -1,0 +1,8 @@
+{
+  "fonts": {"title": "inter_var.ttf", "body": "inter_var.ttf"},
+  "caption": {"case": "none", "weight": 700, "size": 0.082, "marker": false},
+  "background": {"mode": "gradient", "colors": []},
+  "device": {"kind": "phone", "bleed": 0.1},
+  "frameColors": "fixed",
+  "decor": []
+}

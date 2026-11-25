@@ -2,27 +2,12 @@ import json
 from pathlib import Path
 
 import pytest
-from conftest import SKILL_DIR
-from PIL import Image
+from conftest import write_project
 
 import series
 
-EXAMPLE = SKILL_DIR / "assets/series.example.json"
-
-
-def _project(tmp_path: Path, mutate=None) -> Path:
-    data = json.loads(EXAMPLE.read_text())
-    if mutate:
-        mutate(data)
-    for frame in data["frames"]:
-        for shot in frame["shots"]:
-            paths = shot["path"].values() if isinstance(shot["path"], dict) else [shot["path"]]
-            for p in paths:
-                (tmp_path / p).parent.mkdir(parents=True, exist_ok=True)
-                Image.new("RGB", (1080, 2400), "white").save(tmp_path / p)
-    path = tmp_path / "series.json"
-    path.write_text(json.dumps(data))
-    return path
+def _project(tmp_path, mutate=None):
+    return write_project(tmp_path, mutate)
 
 
 def _issues(path: Path):
