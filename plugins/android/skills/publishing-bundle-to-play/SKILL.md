@@ -67,7 +67,7 @@ Preflight does not look at the signature, and the dry run does not either: an un
 keytool -printcert -jarfile <bundle>
 ```
 
-`keytool` comes with any JDK; if it is not on `PATH`, use the one in `$JAVA_HOME/bin` or Android Studio's bundled JBR. Do not use `gplay android signing verify`: it reports an unsigned bundle as `"verified": true` and fails on a correctly signed one with a self-signed upload certificate.
+`keytool` comes with any JDK; if it is not on `PATH`, use the one in `$JAVA_HOME/bin` or Android Studio's bundled JBR. Do not use `gplay android signing verify` for an `.aab`: it runs `jarsigner -verify -strict` and trusts the exit code, so it reports an unsigned bundle as `"verified": true` and fails a correctly signed one, because upload certificates are self-signed.
 
 - `Not a signed jar file`: the bundle is unsigned. Stop. Gradle builds a release bundle unsigned when the module has no `signingConfig` for `release`. The user signs it with the upload key (Android Studio's Generate Signed App Bundle, or a signing config fed from a gitignored properties file). Never handle the keystore or its passwords yourself.
 - `Owner: CN=Android Debug`: signed with the debug key. Stop, as above.
