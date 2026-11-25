@@ -1,0 +1,27 @@
+{
+  "app": {"name": "Pixstage", "brand": ["#2A1BD6", "#FF6CC9", "#FFC15E"], "icon": "store/icon-512.png"},
+  "style": {"name": "minimal", "overrides": {}},
+  "targets": ["android-phone", "feature-graphic"],
+  "locales": ["en-US", "ru-RU"],
+  "frames": [
+    {
+      "role": "cover", "span": 2,
+      "caption": {"en-US": "Screenshots that sell your app", "ru-RU": "Скриншоты, которые продают"},
+      "subtitle": {"en-US": "Store-ready in a minute", "ru-RU": "Готово для стора за минуту"},
+      "shots": [
+        {"path": "shots/01.png", "platform": "android", "layout": "phone", "offset": [0.75, 0.0], "rotate": -6},
+        {"path": "shots/02.png", "platform": "android", "layout": "phone", "offset": [1.25, 0.06], "rotate": 6}
+      ]
+    },
+    {"role": "feature", "caption": {"en-US": "Pick a layout", "ru-RU": "Выберите раскладку"},
+     "shots": [{"path": "shots/03.png", "platform": "android", "layout": "phone"}]},
+    {"role": "feature", "caption": {"en-US": "Colours from your shot", "ru-RU": "Цвета из скриншота"},
+     "shots": [{"path": "shots/04.png", "platform": "android", "layout": "phone", "tilt": 12}]},
+    {"role": "feature", "caption": {"en-US": "Light or dark", "ru-RU": "Светлая или тёмная"},
+     "shots": [{"path": "shots/05.png", "platform": "android", "layout": "phone"}]},
+    {"role": "feature", "caption": {"en-US": "Export in every format", "ru-RU": "Экспорт в любом формате"},
+     "shots": [{"path": "shots/06.png", "platform": "android", "layout": "phone"}]}
+  ],
+  "decor": [],
+  "output": {"workdir": "store/screenshots", "project_root": "."}
+}
