@@ -14,7 +14,7 @@ Copy this checklist and tick it off as you go:
 ```
 - [ ] 1. gplay installed and authenticated
 - [ ] 2. Inputs resolved: bundle, track, rollout, release notes
-- [ ] 3. Offline checks pass (preflight)
+- [ ] 3. Offline checks pass (preflight, signature)
 - [ ] 4. Current state of the app on Play inspected
 - [ ] 5. Dry run succeeds
 - [ ] 6. User confirmed the summary
@@ -42,7 +42,7 @@ gplay auth status
 
 | Input | Rule |
 |---|---|
-| Bundle | The path the user gave. Otherwise run `find . -path '*/build/outputs/bundle/*' -name '*.aab' -not -path '*ebug*' -exec ls -lt {} +` (newest first, debug variants dropped). One match: use it, and mention if it is older than the latest source change. Several: show them and ask. None: tell the user to build first (for example `./gradlew :app:bundleRelease`) and stop. |
+| Bundle | The path the user gave. Otherwise run `find . \( -path '*/build/outputs/bundle/*' -o -path '*/release/*' \) -name '*.aab' -not -path '*ebug*' -not -path '*/intermediates/*' -exec ls -lt {} +` (newest first, debug variants dropped). Gradle writes to `build/outputs/bundle/`, which is unsigned when the module has no release signing config; Android Studio's Generate Signed App Bundle writes to `<module>/release/`. One match: use it, and mention if it is older than the latest source change. Several: show them and ask. None: tell the user to build first (for example `./gradlew :app:bundleRelease`) and stop. |
 | Track | From the user's words: `internal`, `alpha` (closed testing), `beta` (open testing), `production`, or a custom track name. If the user did not name one, ask. Never rely on gplay's default. |
 | Rollout | A fraction greater than `0` and below `1` makes a staged rollout ("5%" means `0.05`); leaving it out releases to everyone on the track. For `production`, if the user gave no rollout, ask whether to stage it. |
 | Release notes | Optional. Plain text is stored as `en-US`, so for any other language, or several, write a JSON array to a temp file and pass `@file`: `[{"language": "ru-RU", "text": "..."}]`. Play rejects notes over 500 characters per language. |
@@ -60,6 +60,18 @@ It decodes the bundle's manifest with no network or credentials. Its output star
 - Exit code 1 means at least one `error` finding (for example a debuggable build, a leaked secret, target SDK too low). Stop, show the findings and ask the user how to proceed.
 - Report `warning` findings in the summary; they do not block.
 - If the user named a package or version, or `GPLAY_PACKAGE` is set, and the bundle differs: stop and ask. It is the wrong bundle or the wrong app.
+
+Preflight does not look at the signature, and the dry run does not either: an unsigned bundle or one signed with the wrong key is rejected only by the real upload. Check it here:
+
+```bash
+keytool -printcert -jarfile <bundle>
+```
+
+`keytool` comes with any JDK; if it is not on `PATH`, use the one in `$JAVA_HOME/bin` or Android Studio's bundled JBR. Do not use `gplay android signing verify`: it reports an unsigned bundle as `"verified": true` and fails on a correctly signed one with a self-signed upload certificate.
+
+- `Not a signed jar file`: the bundle is unsigned. Stop. Gradle builds a release bundle unsigned when the module has no `signingConfig` for `release`. The user signs it with the upload key (Android Studio's Generate Signed App Bundle, or a signing config fed from a gitignored properties file). Never handle the keystore or its passwords yourself.
+- `Owner: CN=Android Debug`: signed with the debug key. Stop, as above.
+- Otherwise note the signer's `Owner` and `SHA256` fingerprint. If the expected upload certificate is known (the user gave it, the project documents it, or an earlier bundle of the same app that Play accepted is on disk: run the same command on it), compare the SHA-256 fingerprints; a mismatch means the wrong key, so stop and ask. If nothing to compare against is known, show the fingerprint in the summary so the user can check it against Play Console (Test and release, App integrity, Upload key certificate).
 
 ## 4. Inspect the app on Play
 
@@ -94,6 +106,7 @@ Version:        2.3.0 (versionCode 20300)
 Rollout:        5% (staged)
 Release notes:  en-US, ru-RU
 Preflight:      0 errors, 2 warnings (listed above)
+Signed by:      CN=Example, SHA-256 2A:29:…:44:15 (matches the previous upload / not compared)
 Replaces:       nothing / 2.2.1 at 20% (inProgress)
 ```
 
