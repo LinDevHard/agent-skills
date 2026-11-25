@@ -184,7 +184,8 @@ def build_canvas(s: Series, target: str, size: tuple[int, int], locale: str, ski
         sub_html = f'<p class="subtitle">{_esc(subtitle)}</p>' if subtitle else ""
         captions.append(
             f'<div class="caption role-{frame.role}" data-frame="{i}" '
-            f'style="left:{x + fw * 0.08:.0f}px; top:{CAPTION_TOP * fh:.0f}px; width:{width - fw * 0.16:.0f}px; '
+            # The caption stays inside the frame's first slot: text cut by a border reads badly in search.
+            f'style="left:{x + fw * 0.08:.0f}px; top:{CAPTION_TOP * fh:.0f}px; width:{fw * 0.84:.0f}px; '
             f'font-size:{font_px:.1f}px; --accent:{_accent(style, s, i)}">'
             f"<h1>{_caption_html(caption)}</h1>{sub_html}</div>"
         )
