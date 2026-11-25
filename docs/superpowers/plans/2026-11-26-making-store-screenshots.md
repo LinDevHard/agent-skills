@@ -166,6 +166,19 @@ Style specifics (from the spec and the references Pandora/Themify/Ladder):
 - [ ] **Step 5: CHECKPOINT — show the author the four contact sheets and feature graphics (en-US and ru-RU) and stop.** Continue only after the author's explicit approval; apply requested changes and show again.
 - [ ] **Step 6: Commit** `Add sketch, tone and poster styles with Pixstage fixtures`.
 
+### Task 6b: Form factors (added after the style checkpoint)
+
+**Files:** Modify `SKILL/scripts/targets.py`, `series.py`, `compose.py`, `assets/styles/base.css`; tests in `test_targets.py`, `test_series.py`, `test_compose.py`, `test_render.py`; fixtures `evals/making-store-screenshots/fixtures/pixstage-tablet/`, `pixstage-foldable/` captured from `Pixel_Tablet_QA` and `Pixel_Fold_QA`.
+
+**Interfaces:**
+- `Target` gains `form: Literal["phone","tablet","foldable-inner","foldable-outer","any"]`. New targets: `android-tablet-7` (1080×1920), `android-tablet-7-landscape` (1920×1080), `android-tablet-10` (1440×2560), `android-tablet-10-landscape` (2560×1440) — stores play, rustore, min 4 frames (Play large screens); `android-foldable` sizes (2160×2160, 2560×1920, 1200×1920) — play only, 3–8 frames, sides 960–3840; `ios-ipad` (2064×2752), `ios-ipad-landscape` (2752×2064).
+- `ShotRef` gains `form: str = "phone"`; dict paths may be keyed `"<platform>-<form>"` (e.g. `"android-tablet"`, `"ios-tablet"`). `ShotRef.path_for(platform, form="phone") -> str | None`: exact `"<platform>-<form>"` key, then for `phone` the plain platform key and `"web"`; a non-phone form never falls back to a phone path. A str path counts only for its own `form`.
+- `series.validate`: a target whose form has no usable shot in some frame → FAIL naming the frame and the emulator/simulator to capture from.
+- `compose.frame_class(w, h) -> Literal["tall","square","wide"]` (tall: h/w ≥ 1.4; wide: h/w < 0.9). Wide frames: caption in the left column (x 6–42 % of frame width, vertically from 30 %), devices fitted in the right part by height; square frames: caption top, devices fitted to 52 % of width. Caption font size and device width scale from `unit = min(fw, fh * 9 / 16)`.
+- Device kind for non-phone forms is `tablet` (neutral, no buttons or camera).
+
+Tests (write first): `test_tablet_targets_are_9_16_or_16_9`, `test_foldable_sizes_within_play_sides`, `test_tablet_needs_tablet_shots` (phone-only series with `android-tablet-10` → FAIL naming frames[0]), `test_dict_path_by_form`, `test_frame_class`, `test_wide_frame_caption_left_device_right`, `test_square_frame_device_fits`, render test `test_tablet_landscape_renders_exact_size`.
+
 ### Task 7: Store-rule checks
 
 **Files:**
@@ -193,6 +206,7 @@ Style specifics (from the spec and the references Pandora/Themify/Ladder):
   - fastlane iOS (`deliver`): `fastlane/screenshots/<locale>/NN_<WxH>.png`; builder confirms `deliver` detects size from pixels, not names.
 - Prints every copy (`copy out/… -> …`); `--dry-run` copies nothing; existing destination without `--force` → FAIL listing all conflicts and copies nothing. Ends with a summary of what was not placed (e.g. no tablet shots).
 
+- Tablets: `sevenInchScreenshots/`, `tenInchScreenshots/` (fastlane), `tablet-screenshots/`, `large-tablet-screenshots/` (Triple-T) for both orientations; `android-foldable` and anything without a folder → not copied, listed as "upload manually in Play Console".
 - [ ] **Step 1: Failing tests:** `test_fastlane_layout_paths`, `test_triple_t_detected`, `test_place_refuses_to_overwrite` (pre-existing `1.png` → exit 1, file unchanged, nothing else copied), `test_force_overwrites_only_own_slots` (existing `9.png` not written by the series stays), `test_dry_run_copies_nothing`.
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS. **Step 5: Commit** `Add placement into fastlane and Triple-T trees`.
 
