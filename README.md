@@ -14,6 +14,12 @@ Every skill is a folder with a `SKILL.md` file in the open [Agent Skills](https:
 | [publishing-bundle-to-play](plugins/android/skills/publishing-bundle-to-play/SKILL.md) | Publishes a built AAB to a Google Play track, with a dry run and confirmation | [gplay](https://github.com/tamtom/play-console-cli) |
 | [publishing-bundle-to-rustore](plugins/android/skills/publishing-bundle-to-rustore/SKILL.md) | Sends a built AAB update to RuStore moderation, with a dry run and confirmation | [rustore-publisher](https://github.com/vyachin/rustore-publisher) |
 
+### `store-assets` plugin
+
+| Skill | What it does | Needs |
+|---|---|---|
+| [making-store-screenshots](plugins/store-assets/skills/making-store-screenshots/SKILL.md) | Builds a styled 5–8 frame series of store screenshots (App Store, Google Play, RuStore, AppGallery, F-Droid) from an app's screenshots, checks it against store rules and places it into the fastlane tree | Python 3, Playwright, Pillow |
+
 ## Install
 
 Skills are grouped into plugins by topic. Install a whole plugin, or single skills.
@@ -23,6 +29,7 @@ Skills are grouped into plugins by topic. Install a whole plugin, or single skil
 ```bash
 claude plugin marketplace add LinDevHard/agent-skills
 claude plugin install android@lindevhard-skills
+claude plugin install store-assets@lindevhard-skills
 ```
 
 Inside a session, the same works as `/plugin marketplace add LinDevHard/agent-skills` and `/plugin install android@lindevhard-skills`.
@@ -32,6 +39,7 @@ Inside a session, the same works as `/plugin marketplace add LinDevHard/agent-sk
 ```bash
 codex plugin marketplace add LinDevHard/agent-skills
 codex plugin add android@lindevhard-skills
+codex plugin add store-assets@lindevhard-skills
 ```
 
 ### Any other agent

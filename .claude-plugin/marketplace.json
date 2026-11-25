@@ -9,6 +9,11 @@
       "name": "android",
       "source": "./plugins/android",
       "description": "Android release skills: store changelogs, publishing an AAB to Google Play and RuStore."
+    },
+    {
+      "name": "store-assets",
+      "source": "./plugins/store-assets",
+      "description": "Store listing assets: styled App Store and Google Play screenshot series."
     }
   ]
 }
