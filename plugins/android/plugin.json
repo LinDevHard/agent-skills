@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "android",
+  "version": "0.1.0",
+  "description": "Android release skills: store changelogs, publishing an AAB to Google Play and RuStore.",
+  "author": {
+    "name": "LinDevHard"
+  },
+  "homepage": "https://github.com/LinDevHard/agent-skills",
+  "repository": "https://github.com/LinDevHard/agent-skills",
+  "license": "MIT"
+}

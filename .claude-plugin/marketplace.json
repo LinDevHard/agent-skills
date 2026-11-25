@@ -1,0 +1,14 @@
+{
+  "name": "lindevhard-skills",
+  "description": "LinDevHard's skills for AI coding agents.",
+  "owner": {
+    "name": "LinDevHard"
+  },
+  "plugins": [
+    {
+      "name": "android",
+      "source": "./plugins/android",
+      "description": "Android release skills: store changelogs, publishing an AAB to Google Play and RuStore."
+    }
+  ]
+}
