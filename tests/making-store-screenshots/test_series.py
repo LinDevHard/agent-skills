@@ -91,3 +91,30 @@ def test_bad_json_reports_line(tmp_path):
     with pytest.raises(series.SeriesError, match="line 2"):
         series.load(path)
 
+
+
+def test_tablet_needs_tablet_shots(tmp_path):
+    def mutate(d):
+        d["targets"] = ["android-phone", "android-tablet-10"]
+
+    fails = _fails(_issues(_project(tmp_path, mutate)))
+    assert any(f.where == "frames[0]" and "tablet" in f.message and "emulator" in f.message for f in fails)
+
+
+def test_dict_path_by_form():
+    shot = series.ShotRef(path={"android": "p.png", "android-tablet": "t.png", "ios": "i.png"})
+    assert shot.path_for("android") == "p.png"
+    assert shot.path_for("android", "tablet") == "t.png"
+    assert shot.path_for("ios", "tablet") is None  # never a phone shot in a tablet set
+    assert series.ShotRef(path="x.png", platform="android", form="tablet").path_for("android", "tablet") == "x.png"
+    assert series.ShotRef(path="x.png", platform="android", form="tablet").path_for("android") is None
+
+
+def test_tablet_shots_satisfy_tablet_target(tmp_path):
+    def mutate(d):
+        d["targets"] = ["android-tablet-10-landscape"]
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["form"] = "tablet"
+
+    assert _fails(_issues(_project(tmp_path, mutate))) == []

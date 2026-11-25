@@ -18,22 +18,62 @@ import palette
 from series import Decor, Frame, Series, ShotRef
 from targets import TARGETS
 
-# Layout of a portrait frame, as fractions of frame height or width.
+# Frame layouts by shape. Caption box: (left, top, width) as shares of the frame; shots: (x in frames,
+# y offset in frame heights, max width share, max height share or None to let tall frames bleed off the bottom).
 CAPTION_TOP = 0.06  # Below the top 5 % that store UI may cover.
-SHOTS_TOP = 0.27  # Where devices start: under a two-line caption with a subtitle.
-DEVICE_WIDTH = 0.74  # One device per frame, as a share of frame width.
-# Auto placement for 2 and 3 shots: (x offset in frames, y offset in frame heights, width share).
-AUTO_LAYOUT = {
-    1: [(0.5, 0.0, DEVICE_WIDTH)],
-    2: [(0.33, 0.0, 0.52), (0.67, 0.07, 0.52)],
-    3: [(0.22, 0.06, 0.38), (0.5, 0.0, 0.38), (0.78, 0.06, 0.38)],
+LAYOUTS = {
+    "tall": {  # phones, portrait tablets in 9:16
+        "caption": (0.08, CAPTION_TOP, 0.84),
+        "shots_top": 0.27,  # under a two-line caption with a subtitle
+        "auto": {
+            1: [(0.5, 0.0, 0.74, None)],
+            2: [(0.33, 0.0, 0.52, None), (0.67, 0.07, 0.52, None)],
+            3: [(0.22, 0.06, 0.38, None), (0.5, 0.0, 0.38, None), (0.78, 0.06, 0.38, None)],
+        },
+        # A 2-wide cover: large devices that overlap the border between its slots (Themify's cover).
+        "cover2": {
+            1: [(1.0, 0.0, 0.8, None)],
+            2: [(0.78, 0.0, 0.68, None), (1.38, 0.07, 0.68, None)],
+            3: [(0.45, 0.06, 0.56, None), (1.0, 0.0, 0.62, None), (1.55, 0.06, 0.56, None)],
+        },
+    },
+    "square": {  # foldable inner screens, iPad portrait (3:4)
+        "caption": (0.08, CAPTION_TOP, 0.84),
+        "shots_top": 0.3,
+        "auto": {
+            1: [(0.5, 0.0, 0.62, None)],
+            2: [(0.33, 0.0, 0.44, None), (0.67, 0.06, 0.44, None)],
+            3: [(0.22, 0.05, 0.32, None), (0.5, 0.0, 0.32, None), (0.78, 0.05, 0.32, None)],
+        },
+        "cover2": {
+            1: [(1.0, 0.0, 0.7, None)],
+            2: [(0.75, 0.0, 0.6, None), (1.35, 0.06, 0.6, None)],
+            3: [(0.45, 0.05, 0.5, None), (1.0, 0.0, 0.54, None), (1.55, 0.05, 0.5, None)],
+        },
+    },
+    "wide": {  # landscape tablets, foldable inner 4:3, iPad landscape
+        "caption": (0.06, 0.3, 0.36),  # left column
+        "shots_top": 0.14,
+        "auto": {
+            1: [(0.7, 0.0, 0.54, 0.86)],
+            2: [(0.6, 0.0, 0.36, 0.8), (0.84, 0.06, 0.36, 0.8)],
+            3: [(0.53, 0.06, 0.26, 0.7), (0.7, 0.0, 0.26, 0.74), (0.87, 0.06, 0.26, 0.7)],
+        },
+        "cover2": {
+            1: [(1.1, 0.0, 0.7, 0.86)],
+            2: [(0.8, 0.0, 0.5, 0.86), (1.32, 0.06, 0.5, 0.86)],
+            3: [(0.62, 0.06, 0.4, 0.78), (1.0, 0.0, 0.42, 0.82), (1.38, 0.06, 0.4, 0.78)],
+        },
+    },
 }
-# A 2-wide cover: two large devices that overlap the border between its two slots (Themify's cover).
-COVER2_LAYOUT = {
-    1: [(1.0, 0.0, 0.8)],
-    2: [(0.78, 0.0, 0.68), (1.38, 0.07, 0.68)],
-    3: [(0.45, 0.06, 0.56), (1.0, 0.0, 0.62), (1.55, 0.06, 0.56)],
-}
+TALL_MIN, WIDE_MAX = 1.4, 0.9  # h/w thresholds: 9:16 and 10:16 are tall, 3:4 and 1:1 square, 4:3 and 16:9 wide.
+
+
+def frame_class(w: int, h: int) -> str:
+    ratio = h / w
+    return "tall" if ratio >= TALL_MIN else "square" if ratio >= WIDE_MAX else "wide"
+
+
 BEZEL = {"phone": 0.035, "tablet": 0.028, "none": 0.0}  # Bezel thickness as a share of device width.
 
 
@@ -76,12 +116,13 @@ def _caption_html(text: str) -> str:
     return f'{_esc(" ".join(words[:-1]))} <span class="last">{_esc(words[-1])}</span>'
 
 
-def _frame_background(style: dict, s: Series, frame: Frame, index: int, base_dir: Path, platform: str) -> str:
+def _frame_background(style: dict, s: Series, frame: Frame, index: int, base_dir: Path, platform: str,
+                      form: str = "phone") -> str:
     bg = style.get("background", {})
     colors = bg.get("colors") or s.app.brand or ["#f4f5fb", "#dfe3f5"]
     mode = bg.get("mode", "solid")
     if mode == "shot-tone" and frame.shots:
-        path = frame.shots[0].path_for(platform)
+        path = next((p for p in (sh.path_for(platform, form) for sh in frame.shots) if p), None)
         if path:
             top, bottom = palette.soft_gradient(palette.dominant(base_dir / path))
             return f"linear-gradient(180deg, {top}, {bottom})"
@@ -106,8 +147,8 @@ def _accent(style: dict, s: Series, index: int) -> str:
 
 
 def _shot_html(shot: ShotRef, key: str, frame_left: float, fw: int, fh: int, auto, style: dict,
-               base_dir: Path, platform: str, index: int = 0) -> str:
-    rel = shot.path_for(platform)
+               base_dir: Path, platform: str, index: int = 0, form: str = "phone", shots_top: float = 0.27) -> str:
+    rel = shot.path_for(platform, form)
     src = base_dir / rel
     with Image.open(src) as img:
         img_w, img_h = img.size
@@ -115,19 +156,29 @@ def _shot_html(shot: ShotRef, key: str, frame_left: float, fw: int, fh: int, aut
     crop_bottom = shot.crop.bottom if shot.crop else 0
     visible_h = img_h - crop_top - crop_bottom
 
-    kind = shot.layout if shot.layout in BEZEL else style.get("device", {}).get("kind", "phone")
-    auto_x, auto_y, auto_w = auto
+    if shot.layout == "none":
+        kind = "none"
+    elif form != "phone":
+        kind = "tablet"  # tablets and foldables get the neutral tablet body
+    else:
+        kind = shot.layout if shot.layout in BEZEL else style.get("device", {}).get("kind", "phone")
+    auto_x, auto_y, w_share, h_share = auto
     explicit = shot.offset != (0.5, 0.0)
     x_frames = shot.offset[0] if explicit else auto_x
     y_extra = shot.offset[1] if explicit else auto_y
-    dev_w = auto_w * fw * shot.scale
-    bezel = BEZEL[kind] * dev_w
+    b = BEZEL[kind]
+    dev_w = w_share * fw * shot.scale
+    if h_share:  # Fit by height too: a device dev_w wide is dev_w * ((1-2b) * vh/iw + 2b) tall.
+        dev_w = min(dev_w, h_share * fh * shot.scale / ((1 - 2 * b) * visible_h / img_w + 2 * b))
+    bezel = b * dev_w
     screen_w = dev_w - 2 * bezel
     k = screen_w / img_w  # Shot pixels -> canvas pixels; the shot keeps its aspect ratio.
     screen_h = visible_h * k
     dev_h = screen_h + 2 * bezel
     left = frame_left + x_frames * fw - dev_w / 2
-    top = (SHOTS_TOP + y_extra) * fh
+    top = (shots_top + y_extra) * fh
+    if h_share and dev_h < 0.8 * fh and not explicit:
+        top = (fh - dev_h) / 2 + y_extra * fh  # a short (landscape) device sits in the middle of a wide frame
     rotate = shot.rotate
     turns = style.get("device", {}).get("rotate") or []
     if not rotate and turns:  # The style's own turn, alternating per frame, unless the shot sets one.
@@ -194,37 +245,43 @@ def build_canvas(s: Series, target: str, size: tuple[int, int], locale: str, ski
         ]
     )
     platform = TARGETS[target].platform
+    form = TARGETS[target].form
     fw, fh = size
+    cls = frame_class(fw, fh)
+    layout_cfg = LAYOUTS[cls]
+    unit = min(fw, fh * 9 / 16)  # caption scale: frame width on 9:16 and taller, less on wider frames
     if target == "feature-graphic":
         return _feature_graphic(s, style, css, size, locale, base_dir, skill_dir)
 
     caption_cfg = style.get("caption", {})
-    font_px = caption_cfg.get("size", 0.085) * fw
+    font_px = caption_cfg.get("size", 0.085) * unit
+    cap_left, cap_top, cap_width = layout_cfg["caption"]
     backgrounds, captions, shots = [], [], []
     x = 0.0
     for i, frame in enumerate(s.frames):
         width = frame.span * fw
         backgrounds.append(
             f'<section class="frame role-{frame.role}" data-frame="{i}" '
-            f'style="left:{x:.0f}px; width:{width}px; background:{_frame_background(style, s, frame, i, base_dir, platform)}; '
+            f'style="left:{x:.0f}px; width:{width}px; background:{_frame_background(style, s, frame, i, base_dir, platform, form)}; '
             f'--accent:{_accent(style, s, i)}"></section>'
         )
         caption = frame.caption.get(locale, "")
         subtitle = frame.subtitle.get(locale, "")
         sub_html = f'<p class="subtitle">{_esc(subtitle)}</p>' if subtitle else ""
         captions.append(
-            f'<div class="caption role-{frame.role}" data-frame="{i}" '
+            f'<div class="caption role-{frame.role} frame-{cls}" data-frame="{i}" '
             # The caption stays inside the frame's first slot: text cut by a border reads badly in search.
-            f'style="left:{x + fw * 0.08:.0f}px; top:{CAPTION_TOP * fh:.0f}px; width:{fw * 0.84:.0f}px; '
+            f'style="left:{x + fw * cap_left:.0f}px; top:{cap_top * fh:.0f}px; width:{fw * cap_width:.0f}px; '
             f'font-size:{font_px:.1f}px; --accent:{_accent(style, s, i)}">'
             f"<h1>{_caption_html(caption)}</h1>{sub_html}</div>"
         )
-        usable = [sh for sh in frame.shots if sh.path_for(platform)]
-        table = COVER2_LAYOUT if frame.span == 2 else AUTO_LAYOUT
+        usable = [sh for sh in frame.shots if sh.path_for(platform, form)]
+        table = layout_cfg["cover2" if frame.span == 2 else "auto"]
         layout = table.get(len(usable), table[3])
         for j, shot in enumerate(usable):
             auto = layout[min(j, len(layout) - 1)]
-            shots.append(_shot_html(shot, f"{i}.{j}", x, fw, fh, auto, style, base_dir, platform, i))
+            shots.append(_shot_html(shot, f"{i}.{j}", x, fw, fh, auto, style, base_dir, platform, i, form,
+                                    layout_cfg["shots_top"]))
         x += width
 
     decor = []

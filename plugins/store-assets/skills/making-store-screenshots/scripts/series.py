@@ -69,12 +69,17 @@ class ShotRef:
     crop: Crop | None = None
     offset: tuple[float, float] = (0.5, 0.0)
     scale: float = 1.0
+    form: str = "phone"  # phone, tablet or foldable: the screen this shot was taken on.
 
-    def path_for(self, platform: str) -> str | None:
-        """The file to use on a target platform, or None when this shot must not appear there."""
+    def path_for(self, platform: str, form: str = "phone") -> str | None:
+        """The file to use on a target platform and form, or None when this shot must not appear there.
+        A tablet or foldable target never falls back to a phone shot."""
         if isinstance(self.path, dict):
+            exact = self.path.get(f"{platform}-{form}")
+            if exact or form != "phone":
+                return exact or self.path.get(f"web-{form}")
             return self.path.get(platform) or self.path.get("web")
-        if platform == "ios" and self.platform == "android":
+        if self.form != form or (platform == "ios" and self.platform == "android"):
             return None
         return self.path
 
@@ -193,6 +198,11 @@ def validate(s: Series, base_dir: Path) -> list[Issue]:
         fail("frames", f"{n} frames; {_names(too_many)} allow at most {cap}")
 
     ios = any(t.platform == "ios" for t in series_targets)
+    capture_hint = {
+        ("android", "tablet"): "a tablet emulator (e.g. Pixel Tablet)",
+        ("android", "foldable"): "a foldable emulator, unfolded (e.g. Pixel Fold)",
+        ("ios", "tablet"): "an iPad simulator",
+    }
     for i, frame in enumerate(s.frames):
         where = f"frames[{i}]"
         if frame.role not in ("cover", "feature"):
@@ -214,6 +224,14 @@ def validate(s: Series, base_dir: Path) -> list[Issue]:
             if ios and shot.path_for("ios") is None:
                 fail(swhere, "Android shot in an App Store target: Apple 2.3.10 forbids Android imagery; "
                      "add an ios path or drop the ios targets")
+        for t in series_targets:
+            if t.form == "phone" or not frame.shots:
+                continue
+            if not any(sh.path_for(t.platform, t.form) for sh in frame.shots):
+                hint = capture_hint.get((t.platform, t.form), f"a {t.form} device")
+                fail(where, f"no {t.form} shot for {t.name}; capture one from {hint} and add it as "
+                     f'"{t.platform}-{t.form}" in the shot path, or drop the target. Phone shots never go into a '
+                     f"{t.form} set")
         for loc in s.locales:
             if not frame.caption.get(loc):
                 warn(where, f"no caption for {loc}")

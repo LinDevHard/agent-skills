@@ -37,3 +37,5 @@ html, body { background: #fff; }
 .feature-graphic .caption { position: static; text-align: left; font-size: 52px; }
 /* Even line lengths; no automatic hyphenation ("3D-/наклон"). */
 .caption h1, .caption .subtitle { text-wrap: balance; hyphens: manual; }
+/* Wide frames: caption in the left column. */
+.caption.frame-wide { text-align: left; }

@@ -1,5 +1,7 @@
 import re
 
+import pytest
+
 from conftest import SKILL_DIR
 
 import compose
@@ -128,3 +130,64 @@ def test_poster_accent_is_the_brightest_brand_colour(project):
 
     c = _canvas(project(mutate))
     assert "--accent:#FFC15E" in c.html and "--accent:#2A1BD6" not in c.html
+
+
+def _tablet_project(project, target):
+    def mutate(d):
+        d["targets"] = [target]
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["form"] = "tablet"
+
+    return project(mutate, shot_size=(2560, 1600))
+
+
+def _box(html: str, attr: str) -> tuple[float, float, float, float]:
+    m = re.search(rf'{attr}[^>]*?style="left:([\d.-]+)px; top:([\d.-]+)px; width:([\d.]+)px; height:([\d.]+)px', html)
+    assert m, attr
+    return tuple(float(v) for v in m.groups())
+
+
+def test_frame_class():
+    assert compose.frame_class(1080, 1920) == "tall"
+    assert compose.frame_class(1200, 1920) == "tall"
+    assert compose.frame_class(2064, 2752) == "square"
+    assert compose.frame_class(2160, 2160) == "square"
+    assert compose.frame_class(2560, 1920) == "wide"
+    assert compose.frame_class(2560, 1440) == "wide"
+
+
+def test_wide_frame_caption_left_device_right(project):
+    path = _tablet_project(project, "android-tablet-10-landscape")
+    c = _canvas(path, "android-tablet-10-landscape", (2560, 1440))
+    fw = 2560
+    cap_left = _left_px(c.html, 'class="caption role-feature[^"]*" data-frame="1"') - 2 * fw
+    cap_width = _width_px(c.html, 'class="caption role-feature[^"]*" data-frame="1"')
+    assert cap_left < 0.1 * fw and cap_left + cap_width <= 0.45 * fw
+    x, y, w, h = _box(c.html, 'data-shot="1.0"')
+    assert x - 2 * fw >= 0.4 * fw and x - 2 * fw + w <= fw
+    assert 'class="shot device-tablet"' in c.html
+
+
+def test_square_frame_device_fits(project):
+    def mutate(d):
+        d["targets"] = ["android-foldable"]
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["form"] = "foldable"
+
+    c = _canvas(project(mutate, shot_size=(2208, 1840)), "android-foldable", (2160, 2160))
+    x, y, w, h = _box(c.html, 'data-shot="1.0"')
+    assert w <= 0.75 * 2160 and y >= 0.2 * 2160
+
+
+def test_tall_caption_size_unchanged_for_iphone(project):
+    def mutate(d):
+        d["targets"] = ["ios-phone"]
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["platform"] = "ios"
+
+    c = _canvas(project(mutate), "ios-phone", (1320, 2868))
+    m = re.search(r'data-frame="1"[^>]*font-size:([\d.]+)px', c.html)
+    assert float(m.group(1)) == pytest.approx(0.082 * 1320, rel=0.01)

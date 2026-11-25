@@ -168,3 +168,22 @@ def test_missing_playwright_prints_install_line(project, tmp_path):
     assert r.returncode == 2
     assert INSTALL_LINE in r.stderr
     assert "Traceback" not in r.stderr
+
+
+@browser
+def test_tablet_landscape_renders_exact_size(project):
+    def mutate(d):
+        d["targets"] = ["android-tablet-10-landscape"]
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["form"] = "tablet"
+
+    path = project(mutate, shot_size=(2560, 1600))
+    r = _render(path, "--locales", "en-US")
+    assert r.returncode == 0, r.stdout + r.stderr
+    files = sorted((_out(path) / "android-tablet-10-landscape/2560x1440/en-US").glob("[0-9][0-9].*"))
+    assert len(files) == 6
+    for f in files:
+        with Image.open(f) as img:
+            assert img.size == (2560, 1440) and img.mode == "RGB"
+            assert f.stat().st_size <= 5 * 1024 * 1024
