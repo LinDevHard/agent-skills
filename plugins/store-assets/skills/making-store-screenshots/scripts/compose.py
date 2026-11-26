@@ -140,6 +140,9 @@ def _frame_background(style: dict, s: Series, frame: Frame, index: int, base_dir
         if path:
             top, bottom = palette.soft_gradient(palette.dominant(base_dir / path))
             return f"linear-gradient(180deg, {top}, {bottom})"
+    if mode == "soft-brand":  # the brand, lightened enough for dark caption text
+        top, bottom = palette.soft_gradient([colors[index % len(colors)], colors[(index + 1) % len(colors)]])
+        return f"linear-gradient(170deg, {top}, {bottom})"
     if mode == "gradient":
         return f"linear-gradient(160deg, {colors[0]}, {colors[-1]})"
     if mode == "cover-gradient":

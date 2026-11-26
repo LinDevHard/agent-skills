@@ -256,3 +256,13 @@ def test_hyphenated_words_do_not_break(project):
 
     c = _canvas(project(mutate))
     assert '<span class="nobr">3D-tilt</span>' in c.html
+
+
+def test_minimal_background_keeps_dark_caption_readable(project):
+    import palette
+
+    c = _canvas(project())  # example uses minimal with a saturated brand
+    stops = re.findall(r'class="frame role-feature" data-frame="1" style="[^"]*linear-gradient\([^,]+, (#[0-9a-f]{6}), (#[0-9a-f]{6})\)', c.html)
+    assert stops, "minimal should draw a computed soft gradient"
+    for stop in stops[0]:
+        assert palette.contrast("#101014", stop) >= 4.5, stop
