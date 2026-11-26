@@ -1,0 +1,125 @@
+{
+  "app": {
+    "name": "Pixstage",
+    "brand": [
+      "#2A1BD6",
+      "#FF6CC9",
+      "#FFC15E"
+    ],
+    "icon": "pixstage-android/icon.webp"
+  },
+  "style": {
+    "name": "sketch",
+    "overrides": {}
+  },
+  "targets": [
+    "android-phone",
+    "android-tablet-10",
+    "android-tablet-10-landscape",
+    "android-foldable",
+    "android-foldable-outer",
+    "feature-graphic"
+  ],
+  "locales": [
+    "en-US",
+    "ru-RU"
+  ],
+  "frames": [
+    {
+      "role": "cover",
+      "span": 2,
+      "caption": {
+        "en-US": "Make your screenshots shine",
+        "ru-RU": "Красивые скриншоты за минуту"
+      },
+      "subtitle": {
+        "en-US": "Store-ready images in a minute",
+        "ru-RU": "Готовые картинки для стора и соцсетей"
+      },
+      "shots": [
+        {
+          "path": {
+            "android": "pixstage-android/01.webp",
+            "android-tablet": "pixstage-tablet/02.webp",
+            "android-foldable": "pixstage-foldable/01.webp"
+          },
+          "rotate": -5
+        },
+        {
+          "path": {
+            "android": "pixstage-android/02.webp",
+            "android-tablet": "pixstage-tablet/01.webp",
+            "android-foldable": "pixstage-foldable/03.webp"
+          },
+          "rotate": 5
+        }
+      ]
+    },
+    {
+      "caption": {
+        "en-US": "Gradients, mesh and colour",
+        "ru-RU": "Градиенты и цвета"
+      },
+      "shots": [
+        {
+          "path": {
+            "android": "pixstage-android/03.webp",
+            "android-tablet": "pixstage-tablet/03.webp",
+            "android-foldable": "pixstage-foldable/02.webp"
+          }
+        }
+      ]
+    },
+    {
+      "caption": {
+        "en-US": "Frames and soft shadows",
+        "ru-RU": "Рамки и мягкие тени"
+      },
+      "shots": [
+        {
+          "path": {
+            "android": "pixstage-android/04.webp",
+            "android-tablet": "pixstage-tablet/04.webp",
+            "android-foldable": "pixstage-foldable/04.webp"
+          }
+        }
+      ]
+    },
+    {
+      "caption": {
+        "en-US": "Turn and tilt in 3D",
+        "ru-RU": "Поворот и 3D-наклон"
+      },
+      "shots": [
+        {
+          "path": {
+            "android": "pixstage-android/05.webp",
+            "android-tablet": "pixstage-tablet/05.webp",
+            "android-foldable": "pixstage-foldable/05.webp"
+          },
+          "tilt": 10
+        }
+      ]
+    },
+    {
+      "caption": {
+        "en-US": "Captions in your font",
+        "ru-RU": "Подписи вашим шрифтом"
+      },
+      "shots": [
+        {
+          "path": {
+            "android": "pixstage-android/06.webp",
+            "android-tablet": "pixstage-tablet/06.webp",
+            "android-foldable": "pixstage-foldable/06.webp"
+          }
+        }
+      ]
+    }
+  ],
+  "decor": [],
+  "output": {
+    "workdir": "store/screenshots",
+    "project_root": "."
+  }
+}

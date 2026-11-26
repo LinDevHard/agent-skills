@@ -1,0 +1,3 @@
+/* minimal: the Pixstage look. Soft brand gradient, clean caption, one large device with a shadow. */
+.caption { --text: #101014; letter-spacing: -0.02em; }
+.caption h1 { font-weight: 720; }

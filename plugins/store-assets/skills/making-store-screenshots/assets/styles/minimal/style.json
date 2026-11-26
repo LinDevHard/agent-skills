@@ -1,0 +1,19 @@
+{
+  "fonts": {
+    "title": "inter_var.ttf",
+    "body": "inter_var.ttf"
+  },
+  "caption": {
+    "size": 0.082
+  },
+  "background": {
+    "mode": "soft-brand",
+    "colors": []
+  },
+  "device": {
+    "kind": "phone",
+    "bleed": 0.1
+  },
+  "frameColors": "fixed",
+  "decor": []
+}

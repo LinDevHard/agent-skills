@@ -1,0 +1,83 @@
+{
+  "skill_name": "making-store-screenshots",
+  "notes": "Run each eval in a fresh copy of its setup in a scratch folder, once with the skill installed and once without (baseline). Prompts pre-answer the skill's interactive stops. Eval 2 needs macOS with full Xcode and XcodeGen.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "android-folder-tone",
+      "setup": [
+        "copy fixtures/android-project to ./project",
+        "copy fixtures/pixstage-android to ./shots"
+      ],
+      "prompt": "Make Google Play screenshots for the app in ./project from the screenshots in ./shots, in English and Russian. Use the tone style. Captions as you propose are approved.",
+      "expectations": [
+        "Produces 5-8 frames of 1080x1920 per locale (en-US and ru-RU) with no alpha channel",
+        "Captions come from the listing's own wording and contain no banned words (best, #1, free, new, лучший, бесплатно, ...)",
+        "check.py reports 0 FAIL",
+        "Files land in project/fastlane/metadata/android/<locale>/images/phoneScreenshots/1.png... plus featureGraphic.png",
+        "The agent looked at the contact sheet before placing the files",
+        "Nothing is committed"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "ios-capture-sketch",
+      "requires": "macOS with full Xcode (xcrun simctl) and XcodeGen",
+      "setup": [
+        "copy fixtures/ios-stub to ./project",
+        "cd project && xcodegen generate",
+        "build and boot an iPhone and an iPad simulator"
+      ],
+      "prompt": "Make App Store screenshots for this app in the sketch style. Captions as you propose are approved.",
+      "expectations": [
+        "Captures from the simulator with a clean status bar (statusbar.sh ios on) and clears it afterwards",
+        "Renders ios-phone at 1320x2868 and 1206x2622",
+        "Because TARGETED_DEVICE_FAMILY includes iPad, makes an iPad set from iPad simulator captures, never from phone shots",
+        "check.py reports 0 FAIL; files land in project/fastlane/screenshots/<locale>/"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "fastlane-panorama-cover",
+      "setup": [
+        "copy fixtures/android-project to ./project",
+        "convert fixtures/pixstage-android/01.webp..06.webp to PNG at ./project/fastlane/metadata/android/en-US/images/phoneScreenshots/1.png..6.png (the stores take PNG or JPEG only)"
+      ],
+      "prompt": "Turn the existing Play screenshots of this project into a styled set. The phone on the first image should continue onto the second one. English only.",
+      "expectations": [
+        "Uses the six existing raw screenshots as shots (asks or states it)",
+        "The cover spans two frames and a device crosses the border between them",
+        "check.py reports no 'frames do not tile the canvas' FAIL",
+        "Does not overwrite the existing 1.png..6.png without asking first (place.py stops without --force)"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "refuses-banned-claims",
+      "setup": [
+        "copy fixtures/android-project to ./project",
+        "copy fixtures/pixstage-android to ./shots"
+      ],
+      "prompt": "Make Play screenshots from ./shots. Put '#1 screenshot app — free!' on the first one.",
+      "expectations": [
+        "Explains that Play and the App Store forbid ranking and price claims in screenshots",
+        "Proposes a compliant benefit caption instead and uses it (or asks)",
+        "No rendered caption contains '#1' or 'free'"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "android-shots-for-app-store",
+      "setup": [
+        "copy fixtures/android-project to ./project",
+        "copy fixtures/pixstage-android to ./shots"
+      ],
+      "prompt": "Use the screenshots in ./shots to make the App Store set too.",
+      "expectations": [
+        "Warns that the shots show Android UI and Apple 2.3.10 forbids Android imagery on the App Store",
+        "Puts no Android shot into an ios target (render.py --validate fails if it tries)",
+        "Offers to capture iOS screenshots instead or to make only the Play set"
+      ]
+    }
+  ]
+}

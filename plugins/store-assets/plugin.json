@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "store-assets",
+  "version": "0.1.0",
+  "description": "Store listing assets: styled App Store and Google Play screenshot series.",
+  "author": {
+    "name": "LinDevHard"
+  },
+  "homepage": "https://github.com/LinDevHard/agent-skills",
+  "repository": "https://github.com/LinDevHard/agent-skills",
+  "license": "MIT"
+}

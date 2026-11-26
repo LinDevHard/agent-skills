@@ -1,0 +1,200 @@
+import json
+from pathlib import Path
+
+import pytest
+from conftest import write_project
+
+import series
+
+def _project(tmp_path, mutate=None):
+    return write_project(tmp_path, mutate)
+
+
+def _issues(path: Path):
+    return series.validate(series.load(path), path.parent)
+
+
+def _fails(issues):
+    return [i for i in issues if i.level == "FAIL"]
+
+
+def test_example_is_valid(tmp_path):
+    assert _fails(_issues(_project(tmp_path))) == []
+
+
+def test_unknown_target_lists_known(tmp_path):
+    path = _project(tmp_path, lambda d: d.update(targets=["ios-watch"]))
+    fails = _fails(_issues(path))
+    assert any("android-phone" in f.message for f in fails)
+
+
+def test_missing_shot_file_names_frame(tmp_path):
+    path = _project(tmp_path)
+    data = json.loads(path.read_text())
+    data["frames"][2]["shots"][0]["path"] = "shots/missing.png"
+    path.write_text(json.dumps(data))
+    fails = _fails(_issues(path))
+    assert any(f.where == "frames[2].shots[0]" for f in fails)
+
+
+def test_cover_two_wide_needs_a_shot(tmp_path):
+    def mutate(d):
+        d["frames"][0].update(span=2, shots=[])
+
+    fails = _fails(_issues(_project(tmp_path, mutate)))
+    assert any(f.where == "frames[0]" for f in fails)
+
+
+def test_more_than_three_shots_fails(tmp_path):
+    def mutate(d):
+        shot = d["frames"][1]["shots"][0]
+        d["frames"][1]["shots"] = [shot] * 4
+
+    fails = _fails(_issues(_project(tmp_path, mutate)))
+    assert any(f.where == "frames[1]" for f in fails)
+
+
+def test_caption_missing_for_locale_warns(tmp_path):
+    def mutate(d):
+        d["locales"] = ["en-US", "de-DE"]
+
+    issues = _issues(_project(tmp_path, mutate))
+    assert any(i.level == "warn" and "de-DE" in i.message for i in issues)
+
+
+def test_android_shot_in_ios_target_fails(tmp_path):
+    def mutate(d):
+        d["targets"] = ["ios-phone"]
+        d["frames"][1]["shots"] = [{"path": "shots/a.png", "platform": "android"}]
+
+    fails = _fails(_issues(_project(tmp_path, mutate)))
+    assert any("2.3.10" in f.message and f.where.startswith("frames[1]") for f in fails)
+
+
+@pytest.mark.parametrize(
+    ("count", "needle"),
+    [(2, "RuStore and AppGallery need at least 3"), (9, "Play and AppGallery allow at most 8")],
+)
+def test_frame_count_against_stores(tmp_path, count, needle):
+    def mutate(d):
+        d["targets"] = ["android-phone"]
+        feature = d["frames"][1]
+        d["frames"] = [dict(feature) for _ in range(count)]
+
+    fails = _fails(_issues(_project(tmp_path, mutate)))
+    assert any(needle in f.message for f in fails), [f.message for f in fails]
+
+
+def test_bad_json_reports_line(tmp_path):
+    path = tmp_path / "series.json"
+    path.write_text('{\n  "app": {,\n}')
+    with pytest.raises(series.SeriesError, match="line 2"):
+        series.load(path)
+
+
+
+def test_tablet_needs_tablet_shots(tmp_path):
+    def mutate(d):
+        d["targets"] = ["android-phone", "android-tablet-10"]
+
+    fails = _fails(_issues(_project(tmp_path, mutate)))
+    assert any(f.where == "frames[0]" and "tablet" in f.message and "emulator" in f.message for f in fails)
+
+
+def test_dict_path_by_form():
+    shot = series.ShotRef(path={"android": "p.png", "android-tablet": "t.png", "ios": "i.png"})
+    assert shot.path_for("android") == "p.png"
+    assert shot.path_for("android", "tablet") == "t.png"
+    assert shot.path_for("ios", "tablet") is None  # never a phone shot in a tablet set
+    assert series.ShotRef(path="x.png", platform="android", form="tablet").path_for("android", "tablet") == "x.png"
+    assert series.ShotRef(path="x.png", platform="android", form="tablet").path_for("android") is None
+
+
+def test_tablet_shots_satisfy_tablet_target(tmp_path):
+    def mutate(d):
+        d["targets"] = ["android-tablet-10-landscape"]
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["form"] = "tablet"
+
+    assert _fails(_issues(_project(tmp_path, mutate))) == []
+
+
+def test_output_defaults_sit_next_to_the_series(tmp_path):
+    root = tmp_path / "app"
+    (root / "store/screenshots").mkdir(parents=True)
+    (root / "settings.gradle.kts").write_text("")
+    path = root / "store/screenshots/series.json"
+    path.write_text('{"app": {"name": "A"}, "targets": ["android-phone"], "locales": ["en-US"], "frames": []}')
+    s = series.load(path)
+    workdir, project_root = series.output_dirs(s, path)
+    assert workdir == root / "store/screenshots"
+    assert project_root == root  # found by walking up to settings.gradle.kts
+
+
+def test_output_paths_are_relative_to_the_series_file(tmp_path):
+    root = tmp_path / "app"
+    (root / "marketing").mkdir(parents=True)
+    path = root / "marketing/series.json"
+    path.write_text('{"app": {"name": "A"}, "targets": ["android-phone"], "locales": ["en-US"], "frames": [], '
+                    '"output": {"workdir": "build", "project_root": ".."}}')
+    workdir, project_root = series.output_dirs(series.load(path), path)
+    assert workdir == root / "marketing/build" and project_root == root
+
+
+def test_project_root_detection():
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as d:
+        d = Path(d).resolve()
+        (d / "ios/Notes.xcodeproj").mkdir(parents=True)
+        (d / "ios/store").mkdir()
+        assert series.find_project_root(d / "ios/store") == d / "ios"
+        (d / "plain").mkdir()
+        assert series.find_project_root(d / "plain") == d / "plain"  # nothing found: the folder itself
+
+
+def test_ipad_only_series_validates(tmp_path):
+    def mutate(d):
+        d["targets"] = ["ios-ipad"]
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["platform"], s["form"] = "ios", "tablet"
+
+    assert _fails(_issues(_project(tmp_path, mutate))) == []
+
+
+def test_ipad_shot_map_validates(tmp_path):
+    def mutate(d):
+        d["targets"] = ["ios-phone", "ios-ipad"]
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["path"] = {"ios": s["path"], "ios-tablet": s["path"]}
+                s.pop("platform", None)
+
+    assert _fails(_issues(_project(tmp_path, mutate))) == []
+
+
+def test_phone_target_without_usable_shot_fails(tmp_path):
+    def mutate(d):
+        d["targets"] = ["android-phone"]
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["path"] = {"ios": s["path"], "android-tablet": s["path"]}
+                s.pop("platform", None)
+
+    fails = _fails(_issues(_project(tmp_path, mutate)))
+    assert any(f.where == "frames[1]" and "android-phone" in f.message for f in fails)
+
+
+def test_tablet_minimum_is_checked_before_render(tmp_path):
+    def mutate(d):
+        d["targets"] = ["android-tablet-10-landscape"]
+        d["frames"] = d["frames"][1:4]  # 3 frames
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["form"] = "tablet"
+
+    fails = _fails(_issues(_project(tmp_path, mutate)))
+    assert any("at least 4" in f.message for f in fails)
