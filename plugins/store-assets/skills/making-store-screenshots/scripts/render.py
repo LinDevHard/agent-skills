@@ -45,8 +45,11 @@ GEOMETRY_JS = """() => {
     captions: [...document.querySelectorAll('.caption')].map(el => {
       const h1 = el.querySelector('h1') || el;
       const cs = getComputedStyle(h1);
-      return {frame: +el.dataset.frame, text: el.innerText.trim(), box: box(el), color: cs.color,
-              line_height: parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2};
+      const b = box(el);
+      return {frame: +el.dataset.frame, text: el.innerText.trim(), box: b, color: cs.color,
+              line_height: parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2,
+              overflow: h1.scrollWidth > el.clientWidth + 1, broken_word: el.dataset.broken === '1',
+              max_bottom: el.dataset.maxH ? b[1] + (+el.dataset.maxH) : document.getElementById('canvas').offsetHeight};
     }),
     shots: [...document.querySelectorAll('.shot')].map(el => ({
       key: el.dataset.shot, scale: +el.dataset.scale, platform: el.dataset.platform,
@@ -79,6 +82,7 @@ def _capture(page, html_path: Path, width: int, height: int):
     page.goto(html_path.as_uri())
     page.evaluate("document.fonts.ready")
     page.evaluate("Promise.all([...document.images].map(i => i.decode().catch(() => null)))")
+    page.evaluate("window.fitCaptions && window.fitCaptions()")
     geometry = page.evaluate(GEOMETRY_JS)
     canvas = Image.new("RGB", (width, height), "white")
     for x in range(0, width, CHUNK):
@@ -198,6 +202,8 @@ def main(argv=None) -> int:
                         frame_index = 0 if target == "feature-graphic" else slots[slot]
                         caps = [
                             {"text": cap["text"], "color": _rgb_hex(cap["color"]), "line_height": cap["line_height"],
+                             "overflow": cap["overflow"], "broken_word": cap["broken_word"],
+                             "max_bottom": cap["max_bottom"],
                              "box": [cap["box"][0] - left, cap["box"][1], cap["box"][2], cap["box"][3]]}
                             for cap in geo["captions"]
                             if cap["frame"] == frame_index and left <= cap["box"][0] < left + fw

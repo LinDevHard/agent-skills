@@ -52,10 +52,11 @@ LAYOUTS = {
         },
     },
     "wide": {  # landscape tablets, foldable inner 4:3, iPad landscape
-        "caption": (0.06, 0.3, 0.36),  # left column
+        "caption": (0.05, 0.3, 0.32),  # left column
+        "caption_max_h": 0.6,
         "shots_top": 0.14,
         "auto": {
-            1: [(0.7, 0.0, 0.54, 0.86)],
+            1: [(0.69, 0.0, 0.58, 0.86)],
             2: [(0.6, 0.0, 0.36, 0.8), (0.84, 0.06, 0.36, 0.8)],
             3: [(0.53, 0.06, 0.26, 0.7), (0.7, 0.0, 0.26, 0.74), (0.87, 0.06, 0.26, 0.7)],
         },
@@ -66,6 +67,14 @@ LAYOUTS = {
         },
     },
 }
+# Caption and doodle scale per frame shape: frame width on 9:16 and taller frames, less on wider ones.
+UNIT = {
+    "tall": lambda fw, fh: min(fw, fh * 9 / 16),
+    "square": lambda fw, fh: min(fw, fh) * 0.9,
+    "wide": lambda fw, fh: fh * 0.9,
+}
+# Doodle heights (share of frame height) per shape: clear of the caption band in every layout.
+AUTO_DECOR_Y = {"tall": (0.33, 0.72), "square": (0.34, 0.76), "wide": (0.06, 0.8)}
 TALL_MIN, WIDE_MAX = 1.4, 0.9  # h/w thresholds: 9:16 and 10:16 are tall, 3:4 and 1:1 square, 4:3 and 16:9 wide.
 
 
@@ -108,12 +117,17 @@ def _esc(text: str) -> str:
     return html.escape(text, quote=True)
 
 
+def _word(w: str) -> str:
+    # A hyphen is a legal line break ("3D-/tilt"); keep hyphenated words whole.
+    return f'<span class="nobr">{_esc(w)}</span>' if "-" in w.strip("-") else _esc(w)
+
+
 def _caption_html(text: str) -> str:
     """Caption with its last word wrapped, so a style can put a marker behind it."""
     words = text.split()
     if len(words) < 2:
-        return f'<span class="last">{_esc(text)}</span>'
-    return f'{_esc(" ".join(words[:-1]))} <span class="last">{_esc(words[-1])}</span>'
+        return f'<span class="last">{" ".join(_word(w) for w in words)}</span>'
+    return f'{" ".join(_word(w) for w in words[:-1])} <span class="last">{_word(words[-1])}</span>'
 
 
 def _frame_background(style: dict, s: Series, frame: Frame, index: int, base_dir: Path, platform: str,
@@ -167,6 +181,8 @@ def _shot_html(shot: ShotRef, key: str, frame_left: float, fw: int, fh: int, aut
     x_frames = shot.offset[0] if explicit else auto_x
     y_extra = shot.offset[1] if explicit else auto_y
     b = BEZEL[kind]
+    if frame_class(fw, fh) == "tall" and img_w > visible_h:  # a landscape shot in a portrait frame: use the width
+        w_share = min(0.92, w_share * 1.25)
     dev_w = w_share * fw * shot.scale
     if h_share:  # Fit by height too: a device dev_w wide is dev_w * ((1-2b) * vh/iw + 2b) tall.
         dev_w = min(dev_w, h_share * fh * shot.scale / ((1 - 2 * b) * visible_h / img_w + 2 * b))
@@ -196,20 +212,21 @@ def _shot_html(shot: ShotRef, key: str, frame_left: float, fw: int, fh: int, aut
     )
 
 
-AUTO_DECOR_WIDTH = 0.24  # Share of frame width: big enough to read as a doodle, small enough to sit in the gap.
-AUTO_DECOR_Y = (0.2, 0.7)  # Alternate between the caption gap and the lower half, so borders don't line up.
+AUTO_DECOR_WIDTH = 0.24  # Share of the caption unit: reads as a doodle, still fits the gap between devices.
 
 
-def _auto_decor(s: Series, style: dict) -> list[Decor]:
+def _auto_decor(s: Series, style: dict, cls: str, fw: int, fh: int) -> list[Decor]:
     """One doodle across every frame border, so the series reads as one strip (sketch style)."""
     kinds = style.get("decor") or []
     if not kinds:
         return []
+    w = AUTO_DECOR_WIDTH * UNIT[cls](fw, fh) / fw
+    ys = AUTO_DECOR_Y[cls]
     out, border = [], 0
     for i, frame in enumerate(s.frames[:-1]):
         border += frame.span
-        out.append(Decor(kind=kinds[i % len(kinds)], x=border - AUTO_DECOR_WIDTH / 2,
-                         y=AUTO_DECOR_Y[i % 2], w=AUTO_DECOR_WIDTH, rotate=(-12, 9, -4)[i % 3]))
+        out.append(Decor(kind=kinds[i % len(kinds)], x=border - w / 2, y=ys[i % 2], w=w,
+                         rotate=(-12, 9, -4)[i % 3]))
     return out
 
 
@@ -223,11 +240,35 @@ def _fonts_css(style: dict, skill_dir: Path) -> str:
     return "\n".join(out)
 
 
+# Shrinks each caption until its longest word fits on a line and the block fits its height
+# (data-max-h). Run by render.py after fonts load; never breaks a word in the middle.
+FIT_JS = """
+window.fitCaptions = () => {
+  for (const el of document.querySelectorAll('.caption')) {
+    const h1 = el.querySelector('h1');
+    const maxH = +el.dataset.maxH || Infinity;
+    let size = parseFloat(getComputedStyle(el).fontSize);
+    const floor = size * 0.4;  // below this the caption is unreadable anyway; check.py flags it
+    for (let i = 0; i < 60 && size > floor; i++) {
+      if (h1.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= maxH) break;
+      size *= 0.96;
+      el.style.fontSize = size + 'px';
+    }
+    if (h1.scrollWidth > el.clientWidth + 1) {  // last resort: a word longer than the column
+      el.style.overflowWrap = 'anywhere';
+      for (const span of el.querySelectorAll('span')) span.style.whiteSpace = 'normal';
+      el.dataset.broken = '1';
+    }
+  }
+};
+"""
+
+
 def _page(css: str, body: str, width: int, height: int, fw: int, fh: int) -> str:
     return (
         "<!doctype html><html><head><meta charset='utf-8'>"
         f"<style>{css}\n:root {{ --fw:{fw}px; --fh:{fh}px; }}"
-        f"#canvas {{ width:{width}px; height:{height}px; }}</style></head>"
+        f"#canvas {{ width:{width}px; height:{height}px; }}</style><script>{FIT_JS}</script></head>"
         f"<body><div id='canvas'>{body}</div></body></html>"
     )
 
@@ -249,13 +290,15 @@ def build_canvas(s: Series, target: str, size: tuple[int, int], locale: str, ski
     fw, fh = size
     cls = frame_class(fw, fh)
     layout_cfg = LAYOUTS[cls]
-    unit = min(fw, fh * 9 / 16)  # caption scale: frame width on 9:16 and taller, less on wider frames
+    unit = UNIT[cls](fw, fh)
     if target == "feature-graphic":
         return _feature_graphic(s, style, css, size, locale, base_dir, skill_dir)
 
     caption_cfg = style.get("caption", {})
     font_px = caption_cfg.get("size", 0.085) * unit
     cap_left, cap_top, cap_width = layout_cfg["caption"]
+    # The caption block ends above the devices (tall, square) or within the column (wide).
+    cap_max_h = layout_cfg.get("caption_max_h", layout_cfg["shots_top"] - cap_top - 0.015) * fh
     backgrounds, captions, shots = [], [], []
     x = 0.0
     for i, frame in enumerate(s.frames):
@@ -272,7 +315,7 @@ def build_canvas(s: Series, target: str, size: tuple[int, int], locale: str, ski
             f'<div class="caption role-{frame.role} frame-{cls}" data-frame="{i}" '
             # The caption stays inside the frame's first slot: text cut by a border reads badly in search.
             f'style="left:{x + fw * cap_left:.0f}px; top:{cap_top * fh:.0f}px; width:{fw * cap_width:.0f}px; '
-            f'font-size:{font_px:.1f}px; --accent:{_accent(style, s, i)}">'
+            f'font-size:{font_px:.1f}px; --accent:{_accent(style, s, i)}" data-max-h="{cap_max_h:.0f}">'
             f"<h1>{_caption_html(caption)}</h1>{sub_html}</div>"
         )
         usable = [sh for sh in frame.shots if sh.path_for(platform, form)]
@@ -285,7 +328,7 @@ def build_canvas(s: Series, target: str, size: tuple[int, int], locale: str, ski
         x += width
 
     decor = []
-    for d in s.decor or _auto_decor(s, style):
+    for d in s.decor or _auto_decor(s, style, cls, fw, fh):
         path = skill_dir / "assets/decor" / f"{d.kind}.svg"
         # Inline the SVG: Chrome refuses mask-image from file:// URLs.
         mask = "'data:image/svg+xml;base64," + base64.b64encode(path.read_bytes()).decode() + "'"

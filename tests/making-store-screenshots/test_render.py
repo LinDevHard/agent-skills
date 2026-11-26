@@ -187,3 +187,33 @@ def test_tablet_landscape_renders_exact_size(project):
         with Image.open(f) as img:
             assert img.size == (2560, 1440) and img.mode == "RGB"
             assert f.stat().st_size <= 5 * 1024 * 1024
+
+
+def _foldable_caption_report(project, caption):
+    def mutate(d):
+        d["targets"] = ["android-foldable"]
+        d["frames"][1]["caption"]["en-US"] = caption
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["form"] = "foldable"
+
+    path = project(mutate, shot_size=(2208, 1840))
+    r = _render(path, "--locales", "en-US", "--style", "sketch")
+    assert r.returncode == 0, r.stdout + r.stderr
+    report = json.loads((_out(path) / "render-report.json").read_text())
+    return [c for f in report["frames"] for c in f["captions"]]
+
+
+@browser
+def test_caption_shrinks_instead_of_breaking_a_word(project):
+    caps = _foldable_caption_report(project, "Bildschirmfotos verschönern")
+    assert caps and not any(c["overflow"] or c["broken_word"] for c in caps)
+    for c in caps:
+        assert c["box"][1] + c["box"][3] <= c["max_bottom"] + 1, c
+
+
+@browser
+def test_impossible_word_breaks_and_is_reported(project):
+    caps = _foldable_caption_report(project, "Bildschirmfotoverschönerungsprogrammversion")
+    long = [c for c in caps if c["text"].startswith("BILDSCHIRM")]
+    assert long and all(c["broken_word"] and not c["overflow"] for c in long)

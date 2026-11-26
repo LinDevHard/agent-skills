@@ -191,3 +191,68 @@ def test_tall_caption_size_unchanged_for_iphone(project):
     c = _canvas(project(mutate), "ios-phone", (1320, 2868))
     m = re.search(r'data-frame="1"[^>]*font-size:([\d.]+)px', c.html)
     assert float(m.group(1)) == pytest.approx(0.082 * 1320, rel=0.01)
+
+
+@pytest.mark.parametrize(
+    ("target", "size"),
+    [("android-tablet-10-landscape", (2560, 1440)), ("android-foldable", (2160, 2160))],
+)
+def test_caption_is_large_enough_on_wide_and_square_frames(project, target, size):
+    def mutate(d):
+        d["targets"] = [target]
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["form"] = "foldable" if "foldable" in target else "tablet"
+
+    c = _canvas(project(mutate, shot_size=(2560, 1600)), target, size)
+    font = float(re.search(r'data-frame="1"[^>]*font-size:([\d.]+)px', c.html).group(1))
+    assert font >= 0.07 * size[1]
+
+
+@pytest.mark.parametrize(
+    ("target", "size"),
+    [("android-phone", (1080, 1920)), ("android-tablet-10-landscape", (2560, 1440)), ("android-foldable", (2160, 2160))],
+)
+def test_auto_decor_stays_off_captions(project, target, size):
+    def mutate(d):
+        d["style"]["name"] = "sketch"
+        d["targets"] = [target]
+        if target != "android-phone":
+            for f in d["frames"]:
+                for s in f["shots"]:
+                    s["form"] = "foldable" if "foldable" in target else "tablet"
+
+    c = _canvas(project(mutate, shot_size=(2560, 1600)), target, size)
+    caps = []
+    for i in range(1, 5):
+        m = re.search(rf'class="caption role-feature[^"]*" data-frame="{i}" style="left:([\d.]+)px; top:([\d.]+)px; '
+                      r'width:([\d.]+)px', c.html)
+        caps.append((float(m.group(1)), float(m.group(2)), float(m.group(3)), 0.0))
+    decor = [tuple(float(v) for v in m) for m in re.findall(
+        r'class="decor [^"]*" style="left:([\d.-]+)px; top:([\d.-]+)px; width:([\d.]+)px; height:([\d.]+)px', c.html)]
+    assert decor
+    for dx, dy, dw, dh in decor:
+        for cx, cy, cw, ch in caps:
+            ch = size[1] * 0.25  # the caption block's height is not in the HTML; 25 % of the frame covers 3 lines
+            overlap = dx < cx + cw and cx < dx + dw and dy < cy + ch and cy < dy + dh
+            assert not overlap, ((dx, dy, dw, dh), (cx, cy, cw))
+
+
+def test_landscape_shot_fills_portrait_frame(project):
+    def mutate(d):
+        d["targets"] = ["android-tablet-10"]
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["form"] = "tablet"
+
+    c = _canvas(project(mutate, shot_size=(2560, 1600)), "android-tablet-10", (1440, 2560))
+    x, y, w, h = _box(c.html, 'data-shot="1.0"')
+    assert w >= 0.85 * 1440
+
+
+def test_hyphenated_words_do_not_break(project):
+    def mutate(d):
+        d["frames"][1]["caption"]["en-US"] = "Turn and 3D-tilt now"
+
+    c = _canvas(project(mutate))
+    assert '<span class="nobr">3D-tilt</span>' in c.html
