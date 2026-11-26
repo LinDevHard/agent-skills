@@ -1,7 +1,7 @@
 {
   "name": "android",
-  "version": "0.1.1",
-  "description": "Android release skills: store changelogs, publishing an AAB to Google Play and RuStore.",
+  "version": "0.2.0",
+  "description": "Android release skills: store changelogs, publishing an AAB and listing screenshots to Google Play and RuStore.",
   "author": {
     "name": "LinDevHard"
   },

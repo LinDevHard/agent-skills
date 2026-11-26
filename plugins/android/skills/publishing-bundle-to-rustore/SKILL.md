@@ -13,7 +13,7 @@ Copy this checklist and tick it off as you go:
 
 ```
 - [ ] 1. rustore-publisher installed and credentials set
-- [ ] 2. Inputs resolved: bundle, release notes, metadata dir, publish type
+- [ ] 2. Inputs resolved: bundle, release notes, metadata dir, screenshots, publish type
 - [ ] 3. Dry run passes
 - [ ] 4. Current state of the app in RuStore inspected
 - [ ] 5. User confirmed the summary
@@ -38,6 +38,7 @@ echo "${RUSTORE_CREDENTIALS_FILE:-not set}"
 | Bundle | The path the user gave. Otherwise run `find . -path '*/build/outputs/bundle/*' -name '*.aab' -not -path '*ebug*' -exec ls -lt {} +` (newest first). If the project has a RuStore flavor (`*rustore*` in the path), use that one: Play builds may carry Google Play Billing. One match: use it, and mention if it is older than the latest source change. Several: show them and ask. None: tell the user to build first and stop. |
 | Release notes | RuStore takes only Russian notes: `ru-RU/changelogs/<versionCode>.txt`, up to 5000 characters, in the metadata tree (`fastlane/metadata/android/` or `metadata/`). To learn the versionCode, run the dry run from step 3 once: even when it fails, its JSON has `version_code`. If the file is missing, ask the user for the text or offer to write it. |
 | Metadata dir | Never pass the project's tree itself. The tool also sends any `ru-RU` title, descriptions, icon, screenshots and `developer-contacts.json` it finds there, replacing the RuStore listing, and it rejects a `changelogs/default.txt` (which gplay writes). Build a temporary directory with only the notes: `M=$(mktemp -d) && mkdir -p "$M/ru-RU/changelogs" && cp <tree>/ru-RU/changelogs/<code>.txt "$M/ru-RU/changelogs/"`. Copy card files into it only when the user asked to update the listing. |
+| Screenshots | If `<tree>/ru-RU/images/` has `phoneScreenshots/`, `tenInchScreenshots/` or `tvScreenshots/` with files, ask whether to update the RuStore screenshots in this release (they go to moderation with it). No answer or no: leave them out. Yes: copy those folders into `"$M/ru-RU/images/"`, run `file` on each image and check: PNG or JPEG, sides 320–3840 px, 16:9 or 9:16, one orientation per folder, 3–10 files, up to 5 MB; order is by file name. Write `preview.html` to a temp folder (one section per type with its size and count, the images as `<img src="file:///abs/path" style="height:240px">` in order) and open it (`open` / `xdg-open`). Only `ru-RU` is used; other locales and `sevenInchScreenshots` are ignored. |
 | Publish type | `manual` (the default): after approval the user releases in the console. `instantly` only if the user asked for the version to go live on approval. |
 
 Package name and versionCode are not inputs: the tool reads them from the bundle. If the user named either, pass `-p <package>` or `--version-code <N>` so the tool refuses a bundle that does not match.
@@ -73,7 +74,8 @@ Package:        com.example.app
 Bundle:         app/build/outputs/bundle/rustoreRelease/app-rustore-release.aab
 Version code:   42 (live now: 41)
 Release notes:  ru-RU, 312 characters (shown below)
-Listing:        unchanged / title, short description, 6 phone screenshots
+Listing:        unchanged / title, short description
+Screenshots:    unchanged / phone 5 (1080x1920), tablet 5 (2560x1440), preview: /tmp/.../preview.html
 After approval: released by you in RuStore Console (manual)
 ```
 
