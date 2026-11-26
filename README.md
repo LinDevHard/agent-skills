@@ -12,6 +12,7 @@ Every skill is a folder with a `SKILL.md` file in the open [Agent Skills](https:
 |---|---|---|
 | [writing-store-changelogs](plugins/android/skills/writing-store-changelogs/SKILL.md) | Writes "What's new" for one version into `fastlane/metadata/android/<locale>/changelogs/<versionCode>.txt`, within Google Play, F-Droid, RuStore and AppGallery limits | Python 3 |
 | [publishing-bundle-to-play](plugins/android/skills/publishing-bundle-to-play/SKILL.md) | Publishes a built AAB to a Google Play track, with a dry run and confirmation | [gplay](https://github.com/tamtom/play-console-cli) |
+| [publishing-screenshots-to-play](plugins/android/skills/publishing-screenshots-to-play/SKILL.md) | Uploads listing screenshots and the feature graphic from the fastlane tree to Google Play, with a preview and confirmation | [gplay](https://github.com/tamtom/play-console-cli) |
 | [publishing-bundle-to-rustore](plugins/android/skills/publishing-bundle-to-rustore/SKILL.md) | Sends a built AAB update to RuStore moderation, with a dry run and confirmation | [rustore-publisher](https://github.com/vyachin/rustore-publisher) |
 
 ### `store-assets` plugin
