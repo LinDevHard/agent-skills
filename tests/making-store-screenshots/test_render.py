@@ -28,7 +28,7 @@ def _render(series_path, *args):
 
 
 def _out(series_path):
-    return series_path.parent / "store/screenshots/out"
+    return series_path.parent / "out"  # output.workdir defaults to the series file's folder
 
 
 @pytest.fixture(scope="module")

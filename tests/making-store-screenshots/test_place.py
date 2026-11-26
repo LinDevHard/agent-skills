@@ -98,3 +98,12 @@ def test_both_tablet_orientations_conflict(tmp_path):
 def test_missing_out_dir(tmp_path):
     r = _place(tmp_path)
     assert r.returncode == 2 and "render.py" in r.stderr
+
+
+def test_project_root_found_from_workdir(tmp_path):
+    (tmp_path / "settings.gradle.kts").write_text("")
+    _out(tmp_path)
+    r = subprocess.run([sys.executable, str(PLACE), str(tmp_path / "store/screenshots")], capture_output=True,
+                       text=True, cwd="/")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert (tmp_path / "fastlane/metadata/android/en-US/images/phoneScreenshots/1.png").is_file()

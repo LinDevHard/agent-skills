@@ -109,8 +109,29 @@ class Decor:
 
 @dataclass
 class Output:
-    workdir: str = "store/screenshots"
-    project_root: str = "."
+    workdir: str = "."  # where out/ goes, relative to the series file
+    project_root: str | None = None  # relative to the series file; None: found by walking up
+
+
+PROJECT_MARKERS = ("settings.gradle.kts", "settings.gradle", "Package.swift", "fastlane", ".git", "pubspec.yaml",
+                   "package.json")
+
+
+def find_project_root(start: Path) -> Path:
+    """The nearest folder at or above `start` that looks like a project root, else `start`."""
+    start = Path(start).resolve()
+    for d in (start, *start.parents):
+        if any((d / m).exists() for m in PROJECT_MARKERS) or any(d.glob("*.xcodeproj")):
+            return d
+    return start
+
+
+def output_dirs(s: "Series", series_path: Path) -> tuple[Path, Path]:
+    """(workdir, project_root), both resolved against the series file's folder."""
+    base = Path(series_path).resolve().parent
+    workdir = (base / s.output.workdir).resolve()
+    root = (base / s.output.project_root).resolve() if s.output.project_root else find_project_root(base)
+    return workdir, root
 
 
 @dataclass

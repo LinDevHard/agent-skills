@@ -118,3 +118,38 @@ def test_tablet_shots_satisfy_tablet_target(tmp_path):
                 s["form"] = "tablet"
 
     assert _fails(_issues(_project(tmp_path, mutate))) == []
+
+
+def test_output_defaults_sit_next_to_the_series(tmp_path):
+    root = tmp_path / "app"
+    (root / "store/screenshots").mkdir(parents=True)
+    (root / "settings.gradle.kts").write_text("")
+    path = root / "store/screenshots/series.json"
+    path.write_text('{"app": {"name": "A"}, "targets": ["android-phone"], "locales": ["en-US"], "frames": []}')
+    s = series.load(path)
+    workdir, project_root = series.output_dirs(s, path)
+    assert workdir == root / "store/screenshots"
+    assert project_root == root  # found by walking up to settings.gradle.kts
+
+
+def test_output_paths_are_relative_to_the_series_file(tmp_path):
+    root = tmp_path / "app"
+    (root / "marketing").mkdir(parents=True)
+    path = root / "marketing/series.json"
+    path.write_text('{"app": {"name": "A"}, "targets": ["android-phone"], "locales": ["en-US"], "frames": [], '
+                    '"output": {"workdir": "build", "project_root": ".."}}')
+    workdir, project_root = series.output_dirs(series.load(path), path)
+    assert workdir == root / "marketing/build" and project_root == root
+
+
+def test_project_root_detection():
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as d:
+        d = Path(d).resolve()
+        (d / "ios/Notes.xcodeproj").mkdir(parents=True)
+        (d / "ios/store").mkdir()
+        assert series.find_project_root(d / "ios/store") == d / "ios"
+        (d / "plain").mkdir()
+        assert series.find_project_root(d / "plain") == d / "plain"  # nothing found: the folder itself

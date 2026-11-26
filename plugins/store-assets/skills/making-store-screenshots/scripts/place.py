@@ -101,13 +101,18 @@ def _slot_files(dest: Path) -> list[Path]:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Copy rendered frames into the listing tree.")
     ap.add_argument("workdir")
-    ap.add_argument("--project-root", default=".")
+    ap.add_argument("--project-root", help="default: the nearest folder above the workdir with settings.gradle, "
+                    "*.xcodeproj, fastlane or .git")
     ap.add_argument("--layout", choices=("auto", "fastlane", "triple-t"), default="auto")
     ap.add_argument("--force", action="store_true", help="replace files in the slots this series fills")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
     out = Path(args.workdir) / "out"
-    root = Path(args.project_root).resolve()
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from series import find_project_root
+
+    root = Path(args.project_root).resolve() if args.project_root else find_project_root(Path(args.workdir))
+    print(f"project root: {root}")
     if not out.is_dir():
         print(f"no {out}: run render.py first", file=sys.stderr)
         return 2

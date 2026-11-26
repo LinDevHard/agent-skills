@@ -35,10 +35,9 @@ def test_canvas_width_is_frames_times_width(project):
 
 def test_spanning_shot_crosses_border(project):
     c = _canvas(project())
-    # The cover's second shot sits at offset 1.25 frames, its box must straddle x = 1080.
-    left = _left_px(c.html, 'data-shot="0.1"')
-    width = _width_px(c.html, 'data-shot="0.1"')
-    assert left < 1080 < left + width
+    # The 2-wide cover's auto layout puts a device across x = 1080.
+    spans = [(_left_px(c.html, f'data-shot="0.{j}"'), _width_px(c.html, f'data-shot="0.{j}"')) for j in (0, 1)]
+    assert any(left < 1080 < left + w for left, w in spans)
 
 
 def test_caption_text_is_escaped(project):

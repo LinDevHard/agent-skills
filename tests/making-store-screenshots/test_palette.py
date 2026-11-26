@@ -36,3 +36,15 @@ def test_soft_gradient_is_lighter_than_source():
     top, bottom = palette.soft_gradient(["#3355ff"])
     for stop in (top, bottom):
         assert palette.luminance(stop) > palette.luminance("#3355ff")
+
+
+def test_cli_prints_hex_colours(tmp_path):
+    import subprocess
+    import sys
+
+    from conftest import SKILL_DIR
+
+    Image.new("RGB", (40, 40), "#3355ff").save(tmp_path / "i.png")
+    r = subprocess.run([sys.executable, str(SKILL_DIR / "scripts/palette.py"), str(tmp_path / "i.png"), "2"],
+                       capture_output=True, text=True)
+    assert r.returncode == 0 and r.stdout.strip().startswith("#")

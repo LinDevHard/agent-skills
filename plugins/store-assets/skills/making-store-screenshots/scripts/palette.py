@@ -1,4 +1,8 @@
-"""Colours from shots: dominant colours, soft background gradients, WCAG contrast."""
+#!/usr/bin/env python3
+"""Colours from shots: dominant colours, soft background gradients, WCAG contrast.
+
+    palette.py <image> [n]    prints the n (default 3) dominant colours, e.g. for app.brand from the icon
+"""
 
 from __future__ import annotations
 
@@ -68,3 +72,12 @@ def contrast(a: str, b: str) -> float:
     """WCAG contrast ratio between two colours."""
     hi, lo = sorted((luminance(a), luminance(b)), reverse=True)
     return (hi + 0.05) / (lo + 0.05)
+
+
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) not in (2, 3):
+        print(__doc__, file=sys.stderr)
+        sys.exit(2)
+    print(" ".join(dominant(Path(sys.argv[1]), int(sys.argv[2]) if len(sys.argv) == 3 else 3)))

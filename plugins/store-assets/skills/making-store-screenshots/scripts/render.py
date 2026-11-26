@@ -163,8 +163,8 @@ def main(argv=None) -> int:
 
     targets = args.targets.split(",") if args.targets else s.targets
     locales = args.locales.split(",") if args.locales else s.locales
-    root = path.parent / s.output.project_root
-    out = (root / s.output.workdir / "out").resolve()
+    workdir, _root = series_mod.output_dirs(s, path)
+    out = workdir / "out"
     cache = out / ".html"
     cache.mkdir(parents=True, exist_ok=True)
     slots = _slot_frames(s)
