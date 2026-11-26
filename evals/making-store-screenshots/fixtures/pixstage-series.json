@@ -6,7 +6,7 @@
       "#FF6CC9",
       "#FFC15E"
     ],
-    "icon": "pixstage-android/icon.png"
+    "icon": "pixstage-android/icon.webp"
   },
   "style": {
     "name": "sketch",
@@ -39,17 +39,17 @@
       "shots": [
         {
           "path": {
-            "android": "pixstage-android/01.png",
-            "android-tablet": "pixstage-tablet/02.png",
-            "android-foldable": "pixstage-foldable/01.png"
+            "android": "pixstage-android/01.webp",
+            "android-tablet": "pixstage-tablet/02.webp",
+            "android-foldable": "pixstage-foldable/01.webp"
           },
           "rotate": -5
         },
         {
           "path": {
-            "android": "pixstage-android/02.png",
-            "android-tablet": "pixstage-tablet/01.png",
-            "android-foldable": "pixstage-foldable/03.png"
+            "android": "pixstage-android/02.webp",
+            "android-tablet": "pixstage-tablet/01.webp",
+            "android-foldable": "pixstage-foldable/03.webp"
           },
           "rotate": 5
         }
@@ -63,9 +63,9 @@
       "shots": [
         {
           "path": {
-            "android": "pixstage-android/03.png",
-            "android-tablet": "pixstage-tablet/03.png",
-            "android-foldable": "pixstage-foldable/02.png"
+            "android": "pixstage-android/03.webp",
+            "android-tablet": "pixstage-tablet/03.webp",
+            "android-foldable": "pixstage-foldable/02.webp"
           }
         }
       ]
@@ -78,9 +78,9 @@
       "shots": [
         {
           "path": {
-            "android": "pixstage-android/04.png",
-            "android-tablet": "pixstage-tablet/04.png",
-            "android-foldable": "pixstage-foldable/04.png"
+            "android": "pixstage-android/04.webp",
+            "android-tablet": "pixstage-tablet/04.webp",
+            "android-foldable": "pixstage-foldable/04.webp"
           }
         }
       ]
@@ -93,9 +93,9 @@
       "shots": [
         {
           "path": {
-            "android": "pixstage-android/05.png",
-            "android-tablet": "pixstage-tablet/05.png",
-            "android-foldable": "pixstage-foldable/05.png"
+            "android": "pixstage-android/05.webp",
+            "android-tablet": "pixstage-tablet/05.webp",
+            "android-foldable": "pixstage-foldable/05.webp"
           },
           "tilt": 10
         }
@@ -109,9 +109,9 @@
       "shots": [
         {
           "path": {
-            "android": "pixstage-android/06.png",
-            "android-tablet": "pixstage-tablet/06.png",
-            "android-foldable": "pixstage-foldable/06.png"
+            "android": "pixstage-android/06.webp",
+            "android-tablet": "pixstage-tablet/06.webp",
+            "android-foldable": "pixstage-foldable/06.webp"
           }
         }
       ]

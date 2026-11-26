@@ -66,7 +66,7 @@ The forbidden text is not an option to choose; ask the user to approve the repla
 locale for Play's alt text.
 
 **4. Style.** Propose one of `sketch`, `tone`, `poster` or `minimal` with one line on why, and show its preview
-(`<skill>/assets/previews/<style>.jpg`). Details and overrides are in [references/styles.md](references/styles.md).
+(`<skill>/assets/previews/<style>.webp`). Details and overrides are in [references/styles.md](references/styles.md).
 Brand colours for `app.brand`: the app's theme, or `$PY <skill>/scripts/palette.py <icon.png>`.
 
 **5. series.json.** Start from `<skill>/assets/series.example.json` and save it as `store/screenshots/series.json`,

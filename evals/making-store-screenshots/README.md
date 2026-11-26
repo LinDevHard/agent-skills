@@ -12,3 +12,7 @@ those are missing, record it as skipped.
 emulator with a clean status bar), tablet and foldable captures, a stub Android project with real listing
 text, a SwiftUI stub for eval 2, and `pixstage-series.json` used for the style previews.
 `style-review/` holds the contact sheets the author approved on 2026-11-26.
+
+Images are WebP to keep the repository small: fixtures are lossless (pixel-identical to the PNG captures),
+review sheets and previews lossy. Stores accept only PNG or JPEG, so convert a fixture back to PNG where a setup
+step puts it into a listing tree.

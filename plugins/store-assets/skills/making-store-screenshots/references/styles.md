@@ -1,7 +1,7 @@
 # Styles
 
 Each style is a recipe for the whole series: fonts, background, how colour changes from frame to frame, decor,
-device. Previews (six Pixstage screens, 2-wide cover) are in `assets/previews/<style>.jpg`; show the one you
+device. Previews (six Pixstage screens, 2-wide cover) are in `assets/previews/<style>.webp`; show the one you
 propose to the user.
 
 | Style | Looks like | Pick it when |

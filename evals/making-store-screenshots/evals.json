@@ -41,7 +41,7 @@
       "name": "fastlane-panorama-cover",
       "setup": [
         "copy fixtures/android-project to ./project",
-        "copy fixtures/pixstage-android/0*.png to ./project/fastlane/metadata/android/en-US/images/phoneScreenshots/1.png..6.png"
+        "convert fixtures/pixstage-android/01.webp..06.webp to PNG at ./project/fastlane/metadata/android/en-US/images/phoneScreenshots/1.png..6.png (the stores take PNG or JPEG only)"
       ],
       "prompt": "Turn the existing Play screenshots of this project into a styled set. The phone on the first image should continue onto the second one. English only.",
       "expectations": [

@@ -20,6 +20,22 @@ Every skill is a folder with a `SKILL.md` file in the open [Agent Skills](https:
 |---|---|---|
 | [making-store-screenshots](plugins/store-assets/skills/making-store-screenshots/SKILL.md) | Builds a styled 5–8 frame series of store screenshots (App Store, Google Play, RuStore, AppGallery, F-Droid) from an app's screenshots, checks it against store rules and places it into the fastlane tree | Python 3, Playwright, Pillow |
 
+#### Example: making-store-screenshots
+
+Six plain screenshots captured from an emulator, one request ("make Google Play screenshots in the sketch style"), and
+this is what lands in `fastlane/metadata/android/<locale>/images/phoneScreenshots/`: a cover spread over two frames,
+one feature per frame, doodles that continue across the borders.
+
+![sketch style](plugins/store-assets/skills/making-store-screenshots/assets/previews/sketch.webp)
+
+The same screens in the `tone` style, where each frame takes its colour from its own screenshot:
+
+![tone style](plugins/store-assets/skills/making-store-screenshots/assets/previews/tone.webp)
+
+Tablet (16:9) and foldable (1:1 and 4:3) sets are laid out for their own shapes, from tablet and foldable captures:
+
+![tablet and foldable sets](evals/making-store-screenshots/style-review/form-factors-sketch-ru.webp)
+
 ## Install
 
 Skills are grouped into plugins by topic. Install a whole plugin, or single skills.
