@@ -99,18 +99,18 @@ $PY <skill>/scripts/render.py store/screenshots/series.json
 Output goes to `out/` next to the series file:
 
 - `<target>/<WxH>/<locale>/NN.png` (JPEG when a PNG is over the store's size limit) and `canvas.png`;
-- `contact-<locale>.png`, `alt-text.<locale>.txt` and `render-report.json`.
+- `contact-<target>-<WxH>-<locale>.png` (one per set), `alt-text.<locale>.txt` and `render-report.json`.
 
 Use `--style NAME` to try another style, and `--targets` or `--locales` to render a subset.
 
 **7. Check.**
 
 ```bash
-$PY <skill>/scripts/check.py store/screenshots
+$PY <skill>/scripts/check.py store/screenshots/series.json
 ```
 
-Fix every FAIL. Fix each warn or tell the user why it stays. Then open every `contact-<locale>.png` (the frames
-side by side) and check:
+Fix every FAIL. Fix each warn or tell the user why it stays. Then open every `contact-*.png` (the frames of one set
+side by side; tablet and foldable sets have their own) and check:
 
 - borders meet;
 - captions read well;
@@ -122,8 +122,8 @@ Return to step 5 or 6 until both the check and the look pass.
 **8. Place.**
 
 ```bash
-$PY <skill>/scripts/place.py store/screenshots --dry-run
-$PY <skill>/scripts/place.py store/screenshots
+$PY <skill>/scripts/place.py store/screenshots/series.json --dry-run
+$PY <skill>/scripts/place.py store/screenshots/series.json
 ```
 
 It writes to the fastlane tree, or to Triple-T when the project has `src/main/play/listings`, and it refuses to

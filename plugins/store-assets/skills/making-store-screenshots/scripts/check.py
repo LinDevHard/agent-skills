@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Check rendered frames against store rules.
 
-    check.py <workdir>
+    check.py <series.json | workdir>
 
-<workdir> holds out/render-report.json from render.py (the series' output.workdir, by default
-store/screenshots). Prints one line per finding and a summary; exit 0 when there is no FAIL, 1 with FAILs,
+Give the series file (or the folder holding out/render-report.json from render.py). Prints one line per finding and a summary; exit 0 when there is no FAIL, 1 with FAILs,
 2 when there is nothing to check. Store rules: references/store-rules.md.
 """
 
@@ -30,15 +29,19 @@ TEXT_PIXEL_DISTANCE = 60  # RGB distance under which a pixel counts as caption t
 STORE_NAMES = {"appstore": "App Store", "play": "Play", "rustore": "RuStore", "appgallery": "AppGallery",
                "fdroid": "F-Droid"}
 
-# Play metadata policy and App Store 2.3: no ranking, price, promotion, calls to action, "new".
-BANNED = {
-    "en": [r"\bbest\b", r"#\s?1\b", r"\bno\.?\s?1\b", r"\btop\b", r"\bnew\b", r"\bfree\b", r"\bsale\b",
-           r"\bdiscount", r"\bmillion", r"\bdownload now\b", r"\binstall now\b", r"\bplay now\b",
-           r"\btry now\b", r"\beditor'?s choice\b", r"\bapp of the year\b", r"\baward"],
-    "ru": [r"\bлучш", r"№\s?1\b", r"\bтоп\b", r"\bнов(ый|ая|ое|ые|инк)", r"\bбесплатн", r"\bскидк",
-           r"\bраспродаж", r"\bмиллион", r"\bскача(й|йте|ть)\b", r"\bустанови(те)?\b", r"\bвыбор редакции\b"],
-}
-PRICE = re.compile(r"\d+\s?(₽|\$|€|£|руб)|[₽$€£]\s?\d|\d+\s?%")
+# Play metadata policy and App Store 2.3: no ranking, price, promotion, "new" or calls to action.
+# FAIL: claims that are almost never innocent. warn: words that are often innocent ("new note", "on top of").
+BANNED_FAIL = [
+    r"\bbest\b", r"#\s?1\b", r"\bno\.?\s?1\b", r"№\s?1\b", r"\bsale\b", r"\bdiscount", r"\bmillions?\b",
+    r"\b(download|install|play|try|get it|get the app)\s+(now|today)\b", r"\beditor'?s choice\b",
+    r"\bapp of the year\b", r"\baward", r"\blimited time\b", r"\d+\s?%\s?off\b",
+    r"\bлучш", r"\bбесплатн", r"\bскидк", r"\bраспродаж", r"\bмиллион",
+    r"\b(скача|установи|загрузи)\w*\s+(сейчас|сегодня|бесплатно)\b", r"\bвыбор редакции\b",
+]
+# "free" is a price claim except in fixed phrases.
+FREE = re.compile(r"(?<![-\w])free\b(?!\s+(up|of|from)\b)")
+BANNED_WARN = [r"\bnew\b", r"\btop\b(?!\s+of\b)", r"\bнов(ый|ая|ое|ые|инк)\w*", r"\bтоп\b"]
+PRICE = re.compile(r"\d+([.,]\d+)?\s?(₽|\$|€|£|руб)|[₽$€£]\s?\d")
 RTL_OR_COMPLEX = ("ar", "he", "fa", "ur", "zh", "ja", "ko", "th", "hi")
 
 
@@ -87,17 +90,19 @@ def _background_under(img, box, text_rgb) -> tuple[int, int, int] | None:
 
 
 def _caption_findings(text: str, locale: str, where: str) -> list[Finding]:
-    out = []
+    """Captions mix languages, so every language's patterns apply to every caption."""
     low = text.lower()
-    for pattern in [p for patterns in BANNED.values() for p in patterns]:  # captions mix languages
-        if re.search(pattern, low):
-            word = re.search(pattern, low).group(0)
-            out.append(Finding("FAIL", where, f'caption "{text}" has "{word}": stores forbid ranking, price, '
-                                              "promotion, \"new\" and calls to action; rewrite it as a benefit"))
-            break
+    m = next((m for m in (re.search(p, low) for p in BANNED_FAIL) if m), None) or FREE.search(low)
+    if m:
+        return [Finding("FAIL", where, f'caption "{text}" has "{m.group(0)}": stores forbid ranking, price, promotion '
+                                       "and calls to action; rewrite it as a benefit")]
     if PRICE.search(text):
-        out.append(Finding("FAIL", where, f'caption "{text}" has a price or percentage (App Store 2.3.7, Play policy)'))
-    return out
+        return [Finding("FAIL", where, f'caption "{text}" has a price (App Store 2.3.7, Play metadata policy)')]
+    m = next((m for m in (re.search(p, low) for p in BANNED_WARN) if m), None)
+    if m:
+        return [Finding("warn", where, f'caption "{text}" has "{m.group(0)}": fine as a feature ("new note"), '
+                                       'not as a claim ("New!", "Top app"); check the context')]
+    return []
 
 
 def run(workdir: Path) -> list[Finding]:
@@ -113,7 +118,7 @@ def run(workdir: Path) -> list[Finding]:
     locales = sorted({fr["locale"] for fr in report["frames"]})
     for loc in locales:
         lang = loc.split("-")[0].lower()
-        if lang not in BANNED:
+        if lang not in ("en", "ru"):
             findings.append(Finding("warn", loc, "the banned-word list covers en and ru only; check captions by eye"))
         if lang in RTL_OR_COMPLEX:
             findings.append(Finding("warn", loc, "right-to-left or complex script: check glyphs and alignment by eye"))
@@ -173,11 +178,16 @@ def run(workdir: Path) -> list[Finding]:
                             findings.append(Finding("FAIL", where, f"caption contrast {ratio:.1f}:1 is below 3:1"))
                         elif ratio < CONTRAST_WARN:
                             findings.append(Finding("warn", where, f"caption contrast {ratio:.1f}:1 is below 4.5:1"))
+                    if cap.get("max_bottom") is not None and cy + ch > cap["max_bottom"] + 1:
+                        findings.append(Finding("FAIL", where, f'caption "{cap["text"]}" runs into the devices; '
+                                                               "shorten it"))
                     if cap.get("overflow"):
                         findings.append(Finding("FAIL", where, f'caption "{cap["text"]}" does not fit its box'))
                     elif cap.get("broken_word"):
                         findings.append(Finding("warn", where, f'a word in "{cap["text"]}" is broken across lines; '
                                                                "use a shorter word"))
+                if target_name != "feature-graphic" and not fr["shots"]:
+                    findings.append(Finding("FAIL", where, "no shot on this frame; every frame must show the app's UI"))
                 for shot in fr["shots"]:
                     if shot.get("scale", 1) > UPSCALE_WARN:
                         findings.append(Finding("warn", where, f"{shot['path']} is upscaled {shot['scale']:.1f}x and "
@@ -221,6 +231,14 @@ def main(argv=None) -> int:
         print(__doc__, file=sys.stderr)
         return 2
     workdir = Path(args[0])
+    if workdir.suffix == ".json" and workdir.is_file():  # the series file: its output.workdir
+        import series
+
+        try:
+            workdir, _root = series.output_dirs(series.load(workdir), workdir)
+        except series.SeriesError as e:
+            print(f"FAIL {e}", file=sys.stderr)
+            return 2
     if not (workdir / "out/render-report.json").is_file():
         print(f"no {workdir / 'out/render-report.json'}: run render.py first (the workdir is the series' "
               "output.workdir, e.g. store/screenshots)", file=sys.stderr)

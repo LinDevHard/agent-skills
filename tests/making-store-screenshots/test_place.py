@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 
@@ -7,12 +8,19 @@ from PIL import Image
 PLACE = SKILL_DIR / "scripts/place.py"
 
 
-def _out(root, target="android-phone", size="1080x1920", locale="en-US", n=6, ext="png"):
-    d = root / "store/screenshots/out" / target / size / locale
+def _out(root, target="android-phone", size="1080x1920", locale="en-US", n=6, ext="png", report=True):
+    out = root / "store/screenshots/out"
+    d = out / target / size / locale
     d.mkdir(parents=True, exist_ok=True)
+    rp = out / "render-report.json"
+    data = json.loads(rp.read_text()) if rp.exists() else {"frames": []}
     for i in range(1, n + 1):
         Image.new("RGB", (8, 8), "#123").save(d / f"{i:02d}.{ext}")
+        data["frames"].append({"target": target, "size": [int(v) for v in size.split("x")], "locale": locale,
+                               "index": i - 1, "file": f"{target}/{size}/{locale}/{i:02d}.{ext}"})
     Image.new("RGB", (8, 8), "#123").save(d / "canvas.png")
+    if report:
+        rp.write_text(json.dumps(data))
     return root
 
 
@@ -107,3 +115,25 @@ def test_project_root_found_from_workdir(tmp_path):
                        text=True, cwd="/")
     assert r.returncode == 0, r.stdout + r.stderr
     assert (tmp_path / "fastlane/metadata/android/en-US/images/phoneScreenshots/1.png").is_file()
+
+
+def test_place_ignores_stale_out_folders(tmp_path):
+    _out(tmp_path)
+    _out(tmp_path, "android-tablet-10-landscape", "2560x1440", n=3, report=False)  # left from an earlier render
+    r = _place(tmp_path)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert not (tmp_path / "fastlane/metadata/android/en-US/images/tenInchScreenshots").exists()
+
+
+def test_series_file_sets_project_root(tmp_path):
+    app = tmp_path / "mono/apps/android"
+    app.mkdir(parents=True)
+    (tmp_path / "mono/.git").mkdir()
+    _out(app)
+    (app / "store/screenshots/series.json").write_text(
+        '{"app": {"name": "A"}, "targets": ["android-phone"], "locales": ["en-US"], "frames": [], '
+        '"output": {"project_root": "../.."}}')
+    r = subprocess.run([sys.executable, str(PLACE), str(app / "store/screenshots/series.json")],
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert (app / "fastlane/metadata/android/en-US/images/phoneScreenshots/1.png").is_file()

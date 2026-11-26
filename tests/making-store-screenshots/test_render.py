@@ -78,7 +78,8 @@ def test_report_has_caption_boxes(rendered):
 @browser
 def test_contact_sheet_and_alt_text(rendered):
     out = _out(rendered)
-    assert (out / "contact-en-US.png").is_file()
+    assert (out / "contact-android-phone-1080x1920-en-US.png").is_file()
+    assert (out / "contact-feature-graphic-1024x500-en-US.png").exists() is False  # one image, no sheet
     assert (out / "alt-text.en-US.txt").read_text().strip()
 
 

@@ -217,8 +217,10 @@ def validate(s: Series, base_dir: Path) -> list[Issue]:
     if too_many:
         cap = min(STORE_LIMITS[st].max_frames for st in too_many)
         fail("frames", f"{n} frames; {_names(too_many)} allow at most {cap}")
+    for t in series_targets:  # device-type minimums on top of the store's (Play large screens: 4)
+        if n < t.min_frames and not too_few:
+            fail("frames", f"{n} frames; {t.name} needs at least {t.min_frames}")
 
-    ios = any(t.platform == "ios" for t in series_targets)
     capture_hint = {
         ("android", "tablet"): "a tablet emulator (e.g. Pixel Tablet)",
         ("android", "foldable"): "a foldable emulator, unfolded (e.g. Pixel Fold)",
@@ -242,13 +244,18 @@ def validate(s: Series, base_dir: Path) -> list[Issue]:
                 if not (base_dir / p).is_file():
                     existing = sorted(x.name for x in (base_dir / p).parent.glob("*"))[:10]
                     fail(swhere, f"file {p} not found; that folder has: {', '.join(existing) or 'nothing'}")
-            if ios and shot.path_for("ios") is None:
-                fail(swhere, "Android shot in an App Store target: Apple 2.3.10 forbids Android imagery; "
-                     "add an ios path or drop the ios targets")
-        for t in series_targets:
-            if t.form == "phone" or not frame.shots:
+        for t in series_targets:  # every target needs a shot of its own platform and form in every frame
+            if not frame.shots or any(sh.path_for(t.platform, t.form) for sh in frame.shots):
                 continue
-            if not any(sh.path_for(t.platform, t.form) for sh in frame.shots):
+            android_only = t.platform == "ios" and any(
+                sh.platform == "android" or (isinstance(sh.path, dict) and any(k.startswith("android") for k in sh.path))
+                for sh in frame.shots)
+            if android_only:
+                fail(where, f"only Android shots for {t.name}: Apple 2.3.10 forbids Android imagery; add an "
+                     f'"ios{"" if t.form == "phone" else "-" + t.form}" shot or drop the target')
+            elif t.form == "phone":
+                fail(where, f"no {t.platform} phone shot for {t.name}; this frame would render empty")
+            else:
                 hint = capture_hint.get((t.platform, t.form), f"a {t.form} device")
                 fail(where, f"no {t.form} shot for {t.name}; capture one from {hint} and add it as "
                      f'"{t.platform}-{t.form}" in the shot path, or drop the target. Phone shots never go into a '

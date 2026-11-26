@@ -31,3 +31,9 @@ when nothing would be overwritten (eval 3 stopped at place.py's conflict list, o
 - A 2-wide cover repeats its alt text on both slots.
 - Locale-specific shots need one series per locale.
 - Shots showing locked Pro features: no rule; left to the user.
+
+## Re-run after the fixes
+
+- eval 3 on Haiku (user allowed replacing the old screenshots): PASS. Output paths not set by hand (out/ next to
+  series.json); raw shots copied to store/screenshots/shots/android/ before place.py --force; check.py 0 FAIL,
+  0 warn; cover phone crosses frames 1-2. Minor: `check.py --help` is treated as a path.

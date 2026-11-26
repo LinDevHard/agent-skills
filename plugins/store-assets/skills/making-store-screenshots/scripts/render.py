@@ -3,7 +3,7 @@
 
     render.py <series.json> [--validate] [--targets t1,t2] [--locales l1,l2] [--style NAME]
 
-Writes <workdir>/out/<target>/<WxH>/<locale>/NN.png|jpg, canvas.png, contact-<locale>.png,
+Writes <workdir>/out/<target>/<WxH>/<locale>/NN.png|jpg, canvas.png, contact-<target>-<WxH>-<locale>.png,
 alt-text.<locale>.txt and render-report.json. Exit codes: 0 ok, 1 series has FAIL issues, 2 missing
 dependency or browser.
 """
@@ -170,7 +170,7 @@ def main(argv=None) -> int:
     slots = _slot_frames(s)
     report = {"generated": datetime.now(timezone.utc).isoformat(timespec="seconds"), "series": str(path),
               "style": s.style.name, "frames": []}
-    contact_src: dict[str, tuple[str, list]] = {}
+    contact_src: dict[str, list] = {}
 
     with sync_playwright() as p:
         browser = _launch(p)
@@ -221,11 +221,11 @@ def main(argv=None) -> int:
                             "frame": frame_index, "file": str(f.relative_to(out)), "bytes": f.stat().st_size,
                             "captions": caps, "shots": shots,
                         })
-                    if target != "feature-graphic" and (locale not in contact_src or target == "android-phone"):
-                        contact_src[locale] = (target, files)
+                    if target != "feature-graphic":  # one sheet per set: every set gets looked at
+                        contact_src[f"{target}-{size[0]}x{size[1]}-{locale}"] = files
         browser.close()
 
-    for locale, (_target, files) in contact_src.items():
+    for name, files in contact_src.items():
         imgs = [Image.open(f).convert("RGB") for f in files]
         scale = CONTACT_HEIGHT / imgs[0].height
         sheet = Image.new("RGB", (sum(round(i.width * scale) for i in imgs), CONTACT_HEIGHT), "white")
@@ -234,13 +234,13 @@ def main(argv=None) -> int:
             i = i.resize((round(i.width * scale), CONTACT_HEIGHT), Image.LANCZOS)
             sheet.paste(i, (x, 0))
             x += i.width
-        sheet.save(out / f"contact-{locale}.png")
+        sheet.save(out / f"contact-{name}.png")
     for locale in locales:
         (out / f"alt-text.{locale}.txt").write_text("\n".join(_alt_lines(s, locale)) + "\n", encoding="utf-8")
     (out / "render-report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"rendered {len(report['frames'])} images into {out}")
-    for locale in contact_src:
-        print(f"look at {out / f'contact-{locale}.png'}")
+    for name in contact_src:
+        print(f"look at {out / f'contact-{name}.png'}")
     return 0
 
 

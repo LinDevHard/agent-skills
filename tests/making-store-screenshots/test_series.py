@@ -153,3 +153,48 @@ def test_project_root_detection():
         assert series.find_project_root(d / "ios/store") == d / "ios"
         (d / "plain").mkdir()
         assert series.find_project_root(d / "plain") == d / "plain"  # nothing found: the folder itself
+
+
+def test_ipad_only_series_validates(tmp_path):
+    def mutate(d):
+        d["targets"] = ["ios-ipad"]
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["platform"], s["form"] = "ios", "tablet"
+
+    assert _fails(_issues(_project(tmp_path, mutate))) == []
+
+
+def test_ipad_shot_map_validates(tmp_path):
+    def mutate(d):
+        d["targets"] = ["ios-phone", "ios-ipad"]
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["path"] = {"ios": s["path"], "ios-tablet": s["path"]}
+                s.pop("platform", None)
+
+    assert _fails(_issues(_project(tmp_path, mutate))) == []
+
+
+def test_phone_target_without_usable_shot_fails(tmp_path):
+    def mutate(d):
+        d["targets"] = ["android-phone"]
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["path"] = {"ios": s["path"], "android-tablet": s["path"]}
+                s.pop("platform", None)
+
+    fails = _fails(_issues(_project(tmp_path, mutate)))
+    assert any(f.where == "frames[1]" and "android-phone" in f.message for f in fails)
+
+
+def test_tablet_minimum_is_checked_before_render(tmp_path):
+    def mutate(d):
+        d["targets"] = ["android-tablet-10-landscape"]
+        d["frames"] = d["frames"][1:4]  # 3 frames
+        for f in d["frames"]:
+            for s in f["shots"]:
+                s["form"] = "tablet"
+
+    fails = _fails(_issues(_project(tmp_path, mutate)))
+    assert any("at least 4" in f.message for f in fails)

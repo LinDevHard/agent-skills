@@ -76,16 +76,26 @@ def test_file_over_appgallery_budget(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "caption", ["The best photo editor", "#1 screenshot app", "Free forever", "New look", "50% off", "Download now",
-                "Лучший редактор", "Скриншоты бесплатно", "Скидка на Pro", "Скачайте сейчас", "Всего 99 ₽"],
+    "caption", ["The best photo editor", "#1 screenshot app", "Free forever", "50% off", "Download now",
+                "Get it now", "Download today", "Лучший редактор", "Скриншоты бесплатно", "Скидка на Pro",
+                "Скачайте сейчас", "Всего 99 ₽"],
 )
 def test_banned_caption_fails(tmp_path, caption):
     assert _has(_findings(_workdir(tmp_path, caption=caption)), "FAIL", "caption")
 
 
-@pytest.mark.parametrize("caption", ["Freedom to design", "Newsletter covers", "Лучи света", "Топливо для идей"])
+@pytest.mark.parametrize("caption", ["Freedom to design", "Newsletter covers", "Лучи света", "Топливо для идей",
+                                     "Stay on top of your tasks", "Hands-free cooking timer", "Free up storage",
+                                     "100% offline", "Zoom to 200%", "Установите напоминание", "Новая заметка за секунду",
+                                     "Скачать видео из ленты"])
 def test_harmless_words_pass(tmp_path, caption):
     assert not _has(_findings(_workdir(tmp_path, caption=caption)), "FAIL", "caption")
+
+
+@pytest.mark.parametrize("caption", ["New look", "Top picks for you", "What is new here"])
+def test_ambiguous_words_warn(tmp_path, caption):
+    f = _findings(_workdir(tmp_path, caption=caption))
+    assert _has(f, "warn", "caption") and not _has(f, "FAIL", "caption")
 
 
 def test_caption_area_over_20_percent(tmp_path):
@@ -159,3 +169,24 @@ def test_cli_exit_codes(tmp_path):
 def test_cli_missing_report(tmp_path):
     r = subprocess.run([sys.executable, str(CHECK), str(tmp_path)], capture_output=True, text=True)
     assert r.returncode == 2 and "render.py" in r.stderr
+
+
+def test_frame_without_shots_fails(tmp_path):
+    assert _has(_findings(_workdir(tmp_path, shots=[])), "FAIL", "no shot")
+
+
+def test_caption_past_its_box_fails(tmp_path):
+    w = _workdir(tmp_path)
+    rp = w / "out/render-report.json"
+    r = json.loads(rp.read_text())
+    r["frames"][2]["captions"][0]["max_bottom"] = 200  # box ends at 320
+    rp.write_text(json.dumps(r))
+    assert _has(_findings(w), "FAIL", "runs into the devices")
+
+
+def test_cli_accepts_series_file(tmp_path):
+    w = _workdir(tmp_path)
+    (w / "series.json").write_text('{"app": {"name": "A"}, "targets": ["android-phone"], "locales": ["en-US"], '
+                                    '"frames": []}')
+    r = subprocess.run([sys.executable, str(CHECK), str(w / "series.json")], capture_output=True, text=True)
+    assert r.returncode == 0 and "0 FAIL" in r.stdout
