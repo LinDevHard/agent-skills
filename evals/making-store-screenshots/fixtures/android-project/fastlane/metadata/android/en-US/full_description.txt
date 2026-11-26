@@ -1,0 +1,36 @@
+Pixstage is a screenshot mockup maker for your phone. Turn plain app screenshots into polished images for Google Play and App Store listings, social posts, portfolios and presentations, in a minute and without a computer.
+
+HOW IT WORKS
+Pick one, two or three screenshots, choose a layout and a background, add a caption and export a finished screenshot mockup. You can also share a screenshot to Pixstage from any app, or open it from your gallery with "Edit in".
+
+LAYOUTS
+• One screenshot, two side by side, three in a row or a fan
+• Adjustable padding and rounded corners
+• Crop, rotate and remove the status and navigation bars
+
+BACKGROUNDS AND CAPTIONS
+• Gradients, solid colours and a blurred copy of your screenshot
+• Captions in sans, serif, mono, handwritten and display fonts
+
+FORMATS
+• Square 1:1 and Portrait 4:5 posts
+• Story 9:16
+• Landscape 16:9
+• Play Store 1080 × 1920 app screenshots
+Export to PNG, or JPEG when the PNG would be too large.
+
+PIXSTAGE PRO
+• Device frames for a real device mockup: phone, foldable, tablet and laptop, in realistic, minimal and clay styles
+• 3D tilt with perspective, plus presets like "On a table" and "Isometric"
+• Premium backgrounds: mesh gradients, patterns, graphics and glow
+• Background colours picked from your own screenshots
+• Film grain
+• Exports without the watermark
+Try every Pro feature on your own screenshot before you buy. Pro is a one-time purchase, not a subscription, and is restored after a reinstall.
+
+MADE FOR ANY SCREEN
+Phones, foldables (including tabletop mode), tablets and Chromebooks. Drag and drop images, undo and redo with keyboard shortcuts, dark and light themes.
+
+Free exports carry a small "Made with Pixstage" watermark. Everything except the Pro features above is free.
+
+Pixstage is made for app developers and designers who need store screenshots for every release, and for anyone who wants an app screenshot, a device mockup or a product shot to look its best.

@@ -1,0 +1,13 @@
+# XcodeGen spec: `xcodegen generate` creates Notes.xcodeproj (needs full Xcode and XcodeGen).
+name: Notes
+options: {bundleIdPrefix: com.example}
+targets:
+  Notes:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources: [Notes]
+    settings:
+      TARGETED_DEVICE_FAMILY: "1,2"   # iPhone and iPad: the skill must also make an iPad set
+      GENERATE_INFOPLIST_FILE: YES
+      MARKETING_VERSION: "1.0"
